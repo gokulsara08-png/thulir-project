@@ -1,0 +1,137 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Check if user is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Helper: Check if user is the document owner
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // Helper: Get user role from their profile
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Helper: Check if user has a specific role
+    function hasRole(role) {
+      return isAuth() && getUserRole() == role;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && isOwner(userId);
+      allow update: if isAuth() && (isOwner(userId) || hasRole('admin'));
+    }
+
+    // Waste Requests
+    match /wasteRequests/{requestId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && (
+        hasRole('waste_generator') ||
+        hasRole('household') ||
+        hasRole('hotel')
+      );
+      allow update: if isAuth() && (
+        hasRole('waste_generator') ||
+        hasRole('household') ||
+        hasRole('hotel') ||
+        hasRole('collection_partner') ||
+        hasRole('transport_partner') ||
+        hasRole('manufacturer') ||
+        hasRole('admin')
+      );
+    }
+
+    // Tracking Events
+    match /trackingEvents/{eventId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && (
+        hasRole('collection_partner') ||
+        hasRole('transport_partner') ||
+        hasRole('manufacturer') ||
+        hasRole('delivery_partner') ||
+        hasRole('admin')
+      );
+    }
+
+    // Processing Records
+    match /processingRecords/{recordId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && hasRole('manufacturer');
+      allow update: if isAuth() && (hasRole('manufacturer') || hasRole('admin'));
+    }
+
+    // Products
+    match /products/{productId} {
+      allow read: if true; // Public marketplace
+      allow create: if isAuth() && hasRole('manufacturer');
+      allow update: if isAuth() && (hasRole('manufacturer') || hasRole('admin'));
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && hasRole('consumer');
+      allow update: if isAuth() && (
+        hasRole('consumer') ||
+        hasRole('manufacturer') ||
+        hasRole('delivery_partner') ||
+        hasRole('admin')
+      );
+    }
+
+    // Delivery Jobs
+    match /deliveryJobs/{jobId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && (hasRole('manufacturer') || hasRole('admin'));
+      allow update: if isAuth() && (
+        hasRole('delivery_partner') ||
+        hasRole('manufacturer') ||
+        hasRole('admin')
+      );
+    }
+
+    // Waste Payments
+    match /wastePayments/{paymentId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && (hasRole('admin') || hasRole('manufacturer'));
+    }
+
+    // Delivery Payments
+    match /deliveryPayments/{paymentId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && hasRole('delivery_partner');
+      allow update: if isAuth() && (hasRole('admin') || hasRole('delivery_partner'));
+    }
+
+    // Subscriptions
+    match /subscriptions/{subId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && (
+        hasRole('household') ||
+        hasRole('hotel') ||
+        hasRole('waste_generator')
+      );
+      allow update: if isAuth() && (
+        hasRole('household') ||
+        hasRole('hotel') ||
+        hasRole('waste_generator') ||
+        hasRole('admin')
+      );
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isAuth() && resource.data.userId == request.auth.uid;
+      allow create: if isAuth();
+      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+  }
+}
