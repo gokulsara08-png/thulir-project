@@ -239,20 +239,27 @@ export default function InteractiveAnalytics({
           <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textAlign: 'center', marginTop: 8 }}>💡 Click to inspect price rate table</span>
         </div>
 
-        {/* 3. Financial & Revenue Trend */}
+        {/* 3. Financial & Value Trend */}
         <div 
           className="card" 
-          onClick={() => setInspectChart({ title: 'Financial & Revenue Trend (₹)', type: 'line', data: spendingTrend, unit: '₹' })}
+          onClick={() => setInspectChart({ 
+            title: ['generator', 'household', 'hotel', 'waste_generator', 'office', 'other'].includes(role) ? 'Waste Pickup Charges & Value Trend (₹)' : 'Financial & Revenue Trend (₹)', 
+            type: 'line', 
+            data: spendingTrend, 
+            unit: '₹' 
+          })}
           style={{ cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <IndianRupee size={16} style={{ color: '#3A86FF' }} /> Value & Earnings Trend
+              <IndianRupee size={16} style={{ color: '#3A86FF' }} /> {['generator', 'household', 'hotel', 'waste_generator', 'office', 'other'].includes(role) ? 'Pickup Charges & Value Trend' : 'Value & Earnings Trend'}
             </h3>
             <Maximize2 size={15} style={{ color: '#94a3b8' }} />
           </div>
-          <LineChart labels={spendingTrend.labels} datasets={[{ label: 'Value (₹)', data: spendingTrend.data, fill: true, color: '#3A86FF' }]} height={220} />
-          <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textAlign: 'center', marginTop: 8 }}>💡 Click for revenue projection</span>
+          <LineChart labels={spendingTrend.labels} datasets={[{ label: ['generator', 'household', 'hotel', 'waste_generator', 'office', 'other'].includes(role) ? 'Pickup Charges (₹)' : 'Value (₹)', data: spendingTrend.data, fill: true, color: '#3A86FF' }]} height={220} />
+          <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textAlign: 'center', marginTop: 8 }}>
+            {['generator', 'household', 'hotel', 'waste_generator', 'office', 'other'].includes(role) ? '💡 Click to view pickup charges history' : '💡 Click for revenue projection'}
+          </span>
         </div>
 
         {/* 4. Waste & Material Category Distribution */}

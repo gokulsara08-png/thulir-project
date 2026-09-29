@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import StatusTracker from '../../components/StatusTracker';
+import GPSTracker from '../../components/GPSTracker';
 import { LineChart, BarChart, DoughnutChart, groupByMonth, groupSpendingByMonth, countByField } from '../../components/Charts';
 import InteractiveAnalytics from '../../components/InteractiveAnalytics';
 import { 
@@ -63,9 +64,17 @@ export default function ManufacturerDashboard() {
   const receivedWaste = myWaste.filter(w => w.status === 'RECEIVED');
   const processingWaste = myWaste.filter(w => w.status === 'PROCESSING');
   const completedWaste = myWaste.filter(w => w.status === 'COMPLETED');
-  const totalEarnings = wastePayments.reduce((s, p) => s + (p.manufacturerPayout || 0), 0);
-  const pendingPayout = wastePayments.filter(p => p.manufacturerPayoutStatus === 'PENDING').reduce((s, p) => s + (p.manufacturerPayout || 0), 0);
-  const paidPayout = wastePayments.filter(p => p.manufacturerPayoutStatus === 'PAID').reduce((s, p) => s + (p.manufacturerPayout || 0), 0);
+  const wasteEarningsTotal = wastePayments.reduce((s, p) => s + (p.manufacturerPayout || 0), 0);
+  const orderEarningsTotal = orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const totalEarnings = wasteEarningsTotal + orderEarningsTotal;
+
+  const pendingWastePayout = wastePayments.filter(p => p.manufacturerPayoutStatus === 'PENDING').reduce((s, p) => s + (p.manufacturerPayout || 0), 0);
+  const pendingOrderPayout = orders.filter(o => o.status !== 'DELIVERED').reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const pendingPayout = pendingWastePayout + pendingOrderPayout;
+
+  const paidWastePayout = wastePayments.filter(p => p.manufacturerPayoutStatus === 'PAID').reduce((s, p) => s + (p.manufacturerPayout || 0), 0);
+  const paidOrderPayout = orders.filter(o => o.status === 'DELIVERED').reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const paidPayout = paidWastePayout + paidOrderPayout;
 
   const sidebar = (
     <div className="sidebar-section">
@@ -151,9 +160,24 @@ export default function ManufacturerDashboard() {
       {tab === 'tracking' && (
         inTransitWaste.length === 0 ? <div className="empty-state"><Truck size={48} /><p className="empty-state-title">No pickups in transit</p></div> :
         inTransitWaste.map(w => (
-          <div className="card" key={w.id} style={{ marginBottom: 'var(--space-4)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}><h3 style={{ fontWeight: 600 }}>{w.wasteId}</h3><span className="badge badge-warning">{w.status}</span></div>
-            <StatusTracker currentStatus={w.status} steps={WASTE_STATUSES} />
+          <div key={w.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+            <GPSTracker 
+              pickupLocation={w.pickupLocation || 'Generator City'}
+              destinationLocation={userData?.location || 'Manufacturer Processing Hub'}
+              status={w.status}
+              driverName="Assigned Transport Partner"
+              height={320}
+            />
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
+                <h3 style={{ fontWeight: 600 }}>{w.wasteId}</h3>
+                <span className="badge badge-warning">{w.status}</span>
+              </div>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginBottom: 'var(--space-3)' }}>
+                <strong>Generator Location:</strong> {w.pickupLocation || 'N/A'} {w.geoCoordinates ? `📍 (${w.geoCoordinates.latitude?.toFixed(4)}°N, ${w.geoCoordinates.longitude?.toFixed(4)}°E)` : ''}
+              </p>
+              <StatusTracker currentStatus={w.status} steps={WASTE_STATUSES} />
+            </div>
           </div>
         ))
       )}
@@ -444,14 +468,115 @@ export default function ManufacturerDashboard() {
 
       {tab === 'earnings' && (
         <>
-          <div className="stats-grid" style={{ marginBottom: 'var(--space-4)' }}>
-            <div className="stat-card"><div className="stat-icon green"><IndianRupee size={24} /></div><div><div className="stat-value">₹{totalEarnings}</div><div className="stat-label">Total Earnings</div></div></div>
-            <div className="stat-card"><div className="stat-icon amber"><CreditCard size={24} /></div><div><div className="stat-value">₹{pendingPayout}</div><div className="stat-label">Pending Payout</div></div></div>
-            <div className="stat-card"><div className="stat-icon blue"><CheckCircle size={24} /></div><div><div className="stat-value">₹{paidPayout}</div><div className="stat-label">Paid Out</div></div></div>
+          <div className="stats-grid" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="stat-card">
+              <div className="stat-icon green"><IndianRupee size={24} /></div>
+              <div>
+                <div className="stat-value">₹{totalEarnings}</div>
+                <div className="stat-label">Total Combined Earnings</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon amber"><CreditCard size={24} /></div>
+              <div>
+                <div className="stat-value">₹{pendingPayout}</div>
+                <div className="stat-label">Pending Payout</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon blue"><CheckCircle size={24} /></div>
+              <div>
+                <div className="stat-value">₹{paidPayout}</div>
+                <div className="stat-label">Settled / Paid Out</div>
+              </div>
+            </div>
           </div>
-          {wastePayments.length > 0 && <div className="card"><table className="data-table"><thead><tr><th>Payment</th><th>Waste</th><th>Payout</th><th>Status</th></tr></thead>
-            <tbody>{wastePayments.map(p => <tr key={p.id}><td style={{fontWeight:600,fontSize:'var(--text-xs)'}}>{p.paymentId}</td><td>{p.wasteId}</td><td>₹{p.manufacturerPayout}</td><td><span className={`badge ${p.manufacturerPayoutStatus==='PAID'?'badge-success':'badge-warning'}`}>{p.manufacturerPayoutStatus}</span></td></tr>)}</tbody>
-          </table></div>}
+
+          {/* Revenue Breakdown by Stream */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+            <div className="card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ margin: 0, fontWeight: 700 }}>♻️ Waste Processing Payouts</h4>
+                <span className="badge badge-success">₹{wasteEarningsTotal}</span>
+              </div>
+              <p style={{ fontSize: '0.825rem', color: 'var(--color-gray-500)', margin: 0 }}>
+                Earned from accepting and processing incoming waste pickup batches.
+              </p>
+            </div>
+
+            <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ margin: 0, fontWeight: 700 }}>🛍️ Eco Marketplace Sales</h4>
+                <span className="badge badge-info">₹{orderEarningsTotal}</span>
+              </div>
+              <p style={{ fontSize: '0.825rem', color: 'var(--color-gray-500)', margin: 0 }}>
+                Earned from consumer purchases of your listed recycled eco products.
+              </p>
+            </div>
+          </div>
+
+          {/* Waste Payments Table */}
+          {wastePayments.length > 0 && (
+            <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+              <h3 style={{ fontWeight: 600, marginBottom: 'var(--space-4)' }}>Waste Processing Payout Transactions</h3>
+              <table className="data-table">
+                <thead>
+                  <tr><th>Payment ID</th><th>Waste Request</th><th>Manufacturer Share</th><th>Payout Status</th></tr>
+                </thead>
+                <tbody>
+                  {wastePayments.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 600, fontSize: 'var(--text-xs)' }}>{p.paymentId}</td>
+                      <td>{p.wasteId}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--color-primary-dark)' }}>₹{p.manufacturerPayout}</td>
+                      <td><span className={`badge ${p.manufacturerPayoutStatus === 'PAID' ? 'badge-success' : 'badge-warning'}`}>{p.manufacturerPayoutStatus}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Product Sales Orders Table */}
+          {orders.length > 0 && (
+            <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+              <h3 style={{ fontWeight: 600, marginBottom: 'var(--space-4)' }}>Marketplace Product Sales</h3>
+              <table className="data-table">
+                <thead>
+                  <tr><th>Order ID</th><th>Items Purchased</th><th>Amount</th><th>Order Status</th></tr>
+                </thead>
+                <tbody>
+                  {orders.map(o => (
+                    <tr key={o.id}>
+                      <td style={{ fontWeight: 600 }}>{o.orderId}</td>
+                      <td>{o.items?.map(i => `${i.name} (x${i.quantity || 1})`).join(', ')}</td>
+                      <td style={{ fontWeight: 600, color: '#2563eb' }}>₹{o.totalAmount}</td>
+                      <td><span className={`badge ${o.status === 'DELIVERED' ? 'badge-success' : 'badge-warning'}`}>{o.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Guidance when both are empty */}
+          {wastePayments.length === 0 && orders.length === 0 && (
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
+              <IndianRupee size={48} style={{ color: 'var(--color-gray-400)', marginBottom: 'var(--space-3)' }} />
+              <h3 style={{ fontWeight: 700, marginBottom: 'var(--space-2)' }}>How to Generate Earnings as a Manufacturer</h3>
+              <p style={{ color: 'var(--color-gray-500)', maxWidth: 500, margin: '0 auto var(--space-6)', fontSize: 'var(--text-sm)' }}>
+                You earn revenue through two streams: processing waste collected from generators and selling refined eco-products on the Thulir Marketplace.
+              </p>
+              <div style={{ display: 'flex', gap: 'var(--space-4)', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button className="btn btn-primary btn-sm" onClick={() => setTab('incoming')}>
+                  📋 Accept Incoming Waste Requests
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setTab('createProduct')}>
+                  📦 Create & List Eco Products
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

@@ -3,7 +3,9 @@ import { useCart } from '../contexts/CartContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { createOrder } from '../services/firestoreService';
-import { Trash2, Plus, Minus, ShoppingCart, ArrowLeft, Package } from 'lucide-react';
+import { calculateDeliveryFee, createDeliveryPayment } from '../services/financialService';
+import LocationPickerInput from '../components/LocationPickerInput';
+import { Trash2, Plus, Minus, ShoppingCart, ArrowLeft, Package, Truck } from 'lucide-react';
 import { useState } from 'react';
 
 export default function CartPage() {
@@ -16,6 +18,11 @@ export default function CartPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Delivery fee calculation (Base ₹25 + distance calculation)
+  const deliveryInfo = calculateDeliveryFee(5); // Default 5km delivery radius calculation
+  const deliveryFee = deliveryInfo.totalDeliveryFee; // ₹55
+  const grandTotal = totalPrice + deliveryFee;
+
   const handleCheckout = async () => {
     if (!user) return navigate('/login');
     if (!address.trim()) return setError('Please enter a shipping address');
@@ -24,9 +31,17 @@ export default function CartPage() {
     setOrdering(true);
     setError('');
     try {
-      const order = await createOrder(user.uid, items, address);
+      const order = await createOrder(user.uid, items, address, { deliveryFee, grandTotal });
+      
+      // Record delivery payment breakdown
+      await createDeliveryPayment({
+        orderId: order.orderId,
+        consumerId: user.uid,
+        ...deliveryInfo
+      });
+
       clearCart();
-      setSuccess(`Order ${order.orderId} placed successfully!`);
+      setSuccess(`Order ${order.orderId} placed successfully! Total: ₹${grandTotal}`);
       setTimeout(() => navigate('/dashboard/consumer'), 2000);
     } catch (err) {
       setError(err.message || t('common.error'));
@@ -81,18 +96,40 @@ export default function CartPage() {
             </div>
 
             <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
-                <span style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>{t('marketplace.total')}</span>
-                <span style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--color-primary-dark)' }}>₹{totalPrice}</span>
+              <h3 style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--color-primary-dark)' }}>
+                📋 Order & Delivery Fee Summary
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem', fontSize: '0.95rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                  <span>Products Subtotal ({items.length} items)</span>
+                  <span style={{ fontWeight: 600 }}>₹{totalPrice}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0284C7', alignItems: 'center' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Truck size={16} /> Eco Logistics Delivery Fee (Base ₹{deliveryInfo.baseFee} + Dist ₹{deliveryInfo.distanceCharge})
+                  </span>
+                  <span style={{ fontWeight: 600 }}>+₹{deliveryFee}</span>
+                </div>
+
+                <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '0.75rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.3rem', color: 'var(--color-primary-dark)' }}>
+                  <span>Grand Total</span>
+                  <span>₹{grandTotal}</span>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Shipping Address</label>
-                <textarea className="form-input" rows={3} value={address} onChange={e => setAddress(e.target.value)} placeholder="Enter your full delivery address..." />
-              </div>
+              <LocationPickerInput
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                label="Shipping Delivery Address"
+                placeholder="Click 📍 Live Location or pick TN City address..."
+                required
+                autoDetectOnMount={true}
+              />
 
               <button className="btn btn-primary btn-lg w-full" onClick={handleCheckout} disabled={ordering}>
-                {ordering ? t('common.loading') : t('marketplace.placeOrder')}
+                {ordering ? t('common.loading') : `Place Order — ₹${grandTotal}`}
               </button>
             </div>
           </>

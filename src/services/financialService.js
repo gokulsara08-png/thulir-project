@@ -73,6 +73,36 @@ export async function updatePayoutStatus(paymentDocId, role, status) {
   });
 }
 
+export async function attachManufacturerToPayment(wasteRequestId, manufacturerId) {
+  try {
+    const q = query(collection(db, 'wastePayments'), where('wasteRequestId', '==', wasteRequestId));
+    const snap = await getDocs(q);
+    snap.docs.forEach(async (d) => {
+      await updateDoc(doc(db, 'wastePayments', d.id), {
+        manufacturerId,
+        updatedAt: serverTimestamp()
+      });
+    });
+  } catch (e) {
+    console.warn('Failed to attach manufacturer to payment:', e.message);
+  }
+}
+
+export async function attachTransportToPayment(wasteRequestId, transportPartnerId) {
+  try {
+    const q = query(collection(db, 'wastePayments'), where('wasteRequestId', '==', wasteRequestId));
+    const snap = await getDocs(q);
+    snap.docs.forEach(async (d) => {
+      await updateDoc(doc(db, 'wastePayments', d.id), {
+        transportPartnerId,
+        updatedAt: serverTimestamp()
+      });
+    });
+  } catch (e) {
+    console.warn('Failed to attach transport to payment:', e.message);
+  }
+}
+
 // Subscribe to payments for a generator
 export function subscribeToGeneratorPayments(generatorId, callback) {
   const q = query(collection(db, 'wastePayments'), where('generatorId', '==', generatorId));

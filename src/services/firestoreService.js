@@ -5,6 +5,7 @@ import {
   where, serverTimestamp, onSnapshot, limit
 } from 'firebase/firestore';
 import { createNotification } from '../contexts/NotificationContext';
+import { attachManufacturerToPayment, attachTransportToPayment } from './financialService';
 
 // ============ HELPERS ============
 function generateId(prefix) {
@@ -111,6 +112,9 @@ export async function manufacturerAcceptRequest(requestId, manufacturerId) {
     updatedAt: serverTimestamp()
   });
 
+  // Attach manufacturer ID to payment record so earnings are updated
+  await attachManufacturerToPayment(requestId, manufacturerId);
+
   await addDoc(collection(db, 'trackingEvents'), {
     wasteRequestId: requestId,
     wasteId: data.wasteId,
@@ -164,6 +168,9 @@ export async function assignTransportPartner(requestId, transportPartnerId) {
     transportPartnerId,
     updatedAt: serverTimestamp()
   });
+
+  // Attach transport partner ID to payment record so earnings are updated
+  await attachTransportToPayment(requestId, transportPartnerId);
 
   await addDoc(collection(db, 'trackingEvents'), {
     wasteRequestId: requestId,

@@ -712,13 +712,13 @@ export default function AIChatbot() {
     if (genKeywords.some(k => q.includes(k))) {
       if (currentUser && (userRole === 'household' || userRole === 'hotel' || userRole === 'waste_generator')) {
         return {
-          text: "🏠 Waste Generator Dashboard Features:\n• Create Waste Request: Submit waste type, weight (kg), & location.\n• Live Tracking: View assigned driver & pickup status.\n• Subscriptions: Set up recurring daily or weekly pickups.\n• Waste Earnings: Track payouts earned per kg of collected waste.",
+          text: "🏠 Waste Generator Dashboard Features:\n• Create Waste Request: Submit waste type, weight (kg), & location.\n• Live Tracking: View assigned driver & pickup status.\n• Subscriptions: Set up recurring daily or weekly pickups.\n• Eco Rewards & Impact: Track Eco Points & pickup history.",
           autoNavigate: true,
           actions: [{ label: "🏠 Open Generator Dashboard →", action: 'navigate', route: '/dashboard/generator' }]
         };
       }
       return {
-        text: "🏠 Waste Generator Role Features:\n• Submit waste requests for Organic, Plastic, E-Waste, Paper, & Metal.\n• Setup recurring pickup subscriptions.\n• Earn money per kg of waste collected.\n\nPlease log in with a Generator account to access this dashboard.",
+        text: "🏠 Waste Generator Role Features:\n• Submit waste requests for Organic, Plastic, E-Waste, Paper, & Metal.\n• Setup recurring pickup subscriptions.\n• Earn Eco Points & reward badges per pickup.\n\nPlease log in with a Generator account to access this dashboard.",
         autoNavigate: true,
         actions: [{ label: "🔑 Log in as Generator →", action: 'navigate', route: '/login' }]
       };
@@ -828,7 +828,7 @@ export default function AIChatbot() {
               parts: [{
                 text: `You are THULIR Civic Copilot 🌿, the official AI assistant for THULIR Smart Waste Management circular platform.
 You understand all 6 stakeholder roles and their internal dashboard features:
-1. Waste Generator (Household/Hotel): Submit pickup requests, view request status, track earnings, setup daily/weekly subscriptions.
+1. Waste Generator (Household/Hotel): Submit pickup requests, view request status, track eco points & pickup charges, setup daily/weekly subscriptions.
 2. Transport & Collection Partner: Accept pending pickups, GPS route navigation, log vehicle number, track per-km distance earnings.
 3. Manufacturer & Recycler: Accept raw waste shipments, log processing/upcycling into compost/pellets, list eco-products on marketplace.
 4. Consumer: Browse Eco Marketplace, buy upcycled goods, track delivery, earn eco impact reward points.
