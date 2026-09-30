@@ -78,42 +78,51 @@ export default function TransportDashboard() {
           </div>
 
           {/* Fleet Load Utilization & Fuel Efficiency Card */}
-          <div className="card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <h3 style={{ margin: 0, fontWeight: 800, color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Truck size={20} color="var(--color-primary)" /> Fleet Load Capacity & Logistics Optimizer
-                </h3>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Real-time payload status and optimized Eco routing.</p>
-              </div>
-              <span className="badge badge-success" style={{ background: '#D8F3DC', color: '#1B4332', fontWeight: 700 }}>🚛 Vehicle: TN-09-ECO-4421</span>
-            </div>
+          {(() => {
+            const currentPayloadKg = activePickups.reduce((sum, p) => sum + Number(p.verifiedCollectedWeight || (Number(p.quantity || 1) * 20) || 20), 0);
+            const maxCapacityKg = 1000;
+            const loadPercentage = Math.min(100, Math.round((currentPayloadKg / maxCapacityKg) * 100));
+            const realFuelSavedLiters = (completedPickups.reduce((sum, p) => sum + Number(p.verifiedCollectedWeight || 25), 0) * 0.15 || 14.2).toFixed(1);
 
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>
-                <span>Truck Capacity Utilization</span>
-                <span>750 kg / 1000 kg (75% Full)</span>
-              </div>
-              <div style={{ width: '100%', height: 12, background: '#e2e8f0', borderRadius: 6, overflow: 'hidden' }}>
-                <div style={{ width: '75%', height: '100%', background: 'linear-gradient(90deg, #52B788, #2D6A4F)', borderRadius: 6 }} />
-              </div>
-            </div>
+            return (
+              <div className="card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontWeight: 800, color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Truck size={20} color="var(--color-primary)" /> Fleet Load Capacity & Logistics Optimizer
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Real-time payload status and optimized Eco routing.</p>
+                  </div>
+                  <span className="badge badge-success" style={{ background: '#D8F3DC', color: '#1B4332', fontWeight: 700 }}>🚛 Vehicle: TN-09-ECO-4421</span>
+                </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', background: '#ffffff', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 800, color: '#0369A1', fontSize: '1.1rem' }}>14.2 Liters</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Fuel Saved (Route Opt.)</div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>
+                    <span>Truck Capacity Utilization</span>
+                    <span>{currentPayloadKg} kg / {maxCapacityKg} kg ({loadPercentage}% Full)</span>
+                  </div>
+                  <div style={{ width: '100%', height: 12, background: '#e2e8f0', borderRadius: 6, overflow: 'hidden' }}>
+                    <div style={{ width: `${loadPercentage}%`, height: '100%', background: 'linear-gradient(90deg, #52B788, #2D6A4F)', borderRadius: 6 }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', background: '#ffffff', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#0369A1', fontSize: '1.1rem' }}>{realFuelSavedLiters} Liters</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Fuel Saved (Route Opt.)</div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#166534', fontSize: '1.1rem' }}>₹15 / kg</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Haul Base Rate</div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#D97706', fontSize: '1.1rem' }}>+₹100</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Trip Completion Bonus</div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: 800, color: '#166534', fontSize: '1.1rem' }}>₹15 / kg</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Haul Base Rate</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 800, color: '#D97706', fontSize: '1.1rem' }}>+₹100</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Trip Completion Bonus</div>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </>
       )}
 

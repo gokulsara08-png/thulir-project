@@ -51,9 +51,19 @@ export default function ConsumerDashboard() {
   };
 
   const filtered = products.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()));
+  const totalSpent = orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
   const activeOrders = orders.filter(o => o.status !== 'DELIVERED');
   const completedOrders = orders.filter(o => o.status === 'DELIVERED');
-  const totalSpent = orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
+
+  // Dynamic live calculations from Firestore order snapshot
+  const totalEcoPoints = Math.round(totalSpent * 0.1) + (orders.length * 25);
+  const totalDivertedKg = (orders.reduce((sum, o) => {
+    const itemQty = (o.items || []).reduce((iq, item) => iq + Number(item.quantity || 1), 0);
+    return sum + (itemQty * 2.5);
+  }, 0) || (orders.length * 3.5)).toFixed(1);
+
+  const co2SavedKg = (totalDivertedKg * 2.3).toFixed(1);
+  const waterSavedLiters = Math.round(totalDivertedKg * 15);
 
   const [showCertificateModal, setShowCertificateModal] = useState(false);
   const [copiedCoupon, setCopiedCoupon] = useState('');
@@ -87,13 +97,13 @@ export default function ConsumerDashboard() {
 
       {tab === 'home' && (
         <>
-          {/* Eco Banner Card */}
+          {/* Dynamic Eco Banner Card */}
           <div className="card" style={{ background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)', color: '#ffffff', marginBottom: '1.5rem', borderRadius: '1.25rem', padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <span className="badge" style={{ background: '#52B788', color: '#1B4332', fontWeight: 700, marginBottom: '0.5rem', display: 'inline-block' }}>🏅 Gold Eco Citizen Status</span>
-                <h2 style={{ margin: '0.25rem 0', color: '#ffffff', fontSize: '1.4rem', fontWeight: 800 }}>Circular Economy Impact Score: 350 Green Points</h2>
-                <p style={{ margin: 0, opacity: 0.9, fontSize: '0.88rem' }}>By purchasing upcycled goods, you've diverted 18.5 kg waste from landfills & saved 42 kg CO2 emissions.</p>
+                <h2 style={{ margin: '0.25rem 0', color: '#ffffff', fontSize: '1.4rem', fontWeight: 800 }}>Circular Economy Impact Score: {totalEcoPoints} Green Points</h2>
+                <p style={{ margin: 0, opacity: 0.9, fontSize: '0.88rem' }}>By purchasing upcycled goods, you've diverted {totalDivertedKg} kg waste from landfills & saved {co2SavedKg} kg CO2 emissions.</p>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button className="btn" style={{ background: '#ffffff', color: '#1B4332', fontWeight: 700 }} onClick={() => setShowCertificateModal(true)}>
@@ -226,7 +236,7 @@ export default function ConsumerDashboard() {
             </div>
             <div style={{ background: '#D8F3DC', padding: '8px 16px', borderRadius: '1rem', border: '1px solid #52B788', textAlign: 'right' }}>
               <div style={{ fontSize: '0.72rem', color: '#1B4332', fontWeight: 600 }}>AVAILABLE BALANCE</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1B4332' }}>350 ECO PTS</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1B4332' }}>{totalEcoPoints} ECO PTS</div>
             </div>
           </div>
 
@@ -289,15 +299,15 @@ export default function ConsumerDashboard() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', margin: '1.5rem 0', background: '#F0FDF4', padding: '1rem', borderRadius: '1rem', border: '1px solid #BBF7D0' }}>
               <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>18.5 kg</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>{totalDivertedKg} kg</div>
                 <div style={{ fontSize: '0.7rem', color: '#15803D' }}>Waste Diverted</div>
               </div>
               <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>42.0 kg</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>{co2SavedKg} kg</div>
                 <div style={{ fontSize: '0.7rem', color: '#15803D' }}>CO2e Saved</div>
               </div>
               <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>250 L</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>{waterSavedLiters} L</div>
                 <div style={{ fontSize: '0.7rem', color: '#15803D' }}>Water Conserved</div>
               </div>
             </div>

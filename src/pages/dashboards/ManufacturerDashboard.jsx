@@ -42,6 +42,12 @@ export default function ManufacturerDashboard() {
   const [selectedTransport, setSelectedTransport] = useState('');
   const [productForm, setProductForm] = useState({ name: '', description: '', category: '', price: '', availableQuantity: '', wasteType: '', image: '' });
   const [editingProduct, setEditingProduct] = useState(null);
+  const [calcWasteKg, setCalcWasteKg] = useState(100);
+  const [calcCategory, setCalcCategory] = useState('Plastic');
+
+  const yieldUnits = Math.round(Number(calcWasteKg || 0) * (calcCategory === 'Plastic' ? 0.85 : calcCategory === 'Organic' ? 1.2 : calcCategory === 'Paper' ? 0.9 : 0.75));
+  const estValuation = Math.round(yieldUnits * (calcCategory === 'Plastic' ? 30 : calcCategory === 'Organic' ? 25 : 20));
+  const co2eReduced = Math.round(Number(calcWasteKg || 0) * 2.12);
 
   useEffect(() => {
     if (!user) return;
@@ -114,35 +120,35 @@ export default function ManufacturerDashboard() {
           </div>
 
           {/* Interactive Batch Raw Material Yield & Production Ratio Converter */}
-          <div className="card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 800, color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Factory size={20} color="var(--color-primary)" /> Raw Waste Yield & Production Output Converter
-            </h3>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem' }}>Calculate estimated output products & revenue ratio based on incoming raw waste tonnage.</p>
+  <div className="card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
+    <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 800, color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Factory size={20} color="var(--color-primary)" /> Raw Waste Yield & Production Output Converter
+    </h3>
+    <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem' }}>Calculate estimated output products & revenue ratio based on incoming raw waste tonnage.</p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', alignItems: 'center' }}>
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.82rem' }}>Raw Waste Intake (kg)</label>
-                <input type="number" id="calcWasteKg" className="form-input" defaultValue={100} style={{ fontSize: '0.9rem' }} />
-              </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', alignItems: 'center' }}>
+      <div className="form-group">
+        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.82rem' }}>Raw Waste Intake (kg)</label>
+        <input type="number" className="form-input" value={calcWasteKg} onChange={e => setCalcWasteKg(e.target.value)} style={{ fontSize: '0.9rem' }} />
+      </div>
 
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.82rem' }}>Material Category</label>
-                <select id="calcCategory" className="form-select" defaultValue="Plastic" style={{ fontSize: '0.9rem' }}>
-                  <option value="Plastic">Recycled Plastic Pots/Planters</option>
-                  <option value="Organic">Organic Bio-Compost Fertilizer</option>
-                  <option value="Paper">Recycled Cardboard Packaging</option>
-                  <option value="Glass">Upcycled Glass Containerware</option>
-                </select>
-              </div>
+      <div className="form-group">
+        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.82rem' }}>Material Category</label>
+        <select className="form-select" value={calcCategory} onChange={e => setCalcCategory(e.target.value)} style={{ fontSize: '0.9rem' }}>
+          <option value="Plastic">Recycled Plastic Pots/Planters</option>
+          <option value="Organic">Organic Bio-Compost Fertilizer</option>
+          <option value="Paper">Recycled Cardboard Packaging</option>
+          <option value="Glass">Upcycled Glass Containerware</option>
+        </select>
+      </div>
 
-              <div style={{ background: '#D8F3DC', padding: '12px 16px', borderRadius: '0.85rem', border: '1px solid #52B788' }}>
-                <div style={{ fontSize: '0.72rem', color: '#1B4332', fontWeight: 700 }}>ESTIMATED PRODUCTION YIELD</div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1B4332', marginTop: 2 }}>~85 Upcycled Units</div>
-                <div style={{ fontSize: '0.75rem', color: '#2D6A4F', marginTop: 2 }}>Est. Valuation: ₹2,550 | CO2e Reduced: 212 kg</div>
-              </div>
-            </div>
-          </div>
+      <div style={{ background: '#D8F3DC', padding: '12px 16px', borderRadius: '0.85rem', border: '1px solid #52B788' }}>
+        <div style={{ fontSize: '0.72rem', color: '#1B4332', fontWeight: 700 }}>ESTIMATED PRODUCTION YIELD</div>
+        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1B4332', marginTop: 2 }}>~{yieldUnits} Upcycled Units</div>
+        <div style={{ fontSize: '0.75rem', color: '#2D6A4F', marginTop: 2 }}>Est. Valuation: ₹{estValuation} | CO2e Reduced: {co2eReduced} kg</div>
+      </div>
+    </div>
+  </div>
         </>
       )}
 

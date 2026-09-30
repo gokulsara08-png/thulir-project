@@ -127,29 +127,37 @@ export default function DeliveryDashboard() {
       {tab === 'overview' && (
         <>
           {/* Driver Rating & Daily Quota Card */}
-          <div className="card" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', color: '#ffffff', marginBottom: '1.5rem', borderRadius: '1.25rem', padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <span className="badge" style={{ background: '#38BDF8', color: '#0F172A', fontWeight: 700, marginBottom: '0.5rem', display: 'inline-block' }}>⭐ 4.9 / 5.0 Top Delivery Courier</span>
-                <h2 style={{ margin: '0.25rem 0', color: '#ffffff', fontSize: '1.35rem', fontWeight: 800 }}>Daily Target: 8 / 10 Deliveries Completed</h2>
-                <p style={{ margin: 0, opacity: 0.85, fontSize: '0.88rem' }}>99.2% On-Time Delivery Record • Zero Customer Complaints</p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>TODAY'S BONUS GOAL</span>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#4ADE80' }}>+₹150 Target Bonus</div>
-              </div>
-            </div>
+          {(() => {
+            const dailyTargetGoal = 10;
+            const completedToday = completed.length;
+            const progressPercent = Math.min(100, Math.round((completedToday / dailyTargetGoal) * 100));
 
-            <div style={{ marginTop: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', opacity: 0.9, marginBottom: 4 }}>
-                <span>Daily Target Progress</span>
-                <span>80% Completed</span>
+            return (
+              <div className="card" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', color: '#ffffff', marginBottom: '1.5rem', borderRadius: '1.25rem', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <span className="badge" style={{ background: '#38BDF8', color: '#0F172A', fontWeight: 700, marginBottom: '0.5rem', display: 'inline-block' }}>⭐ 4.9 / 5.0 Top Delivery Courier</span>
+                    <h2 style={{ margin: '0.25rem 0', color: '#ffffff', fontSize: '1.35rem', fontWeight: 800 }}>Daily Target: {completedToday} / {dailyTargetGoal} Deliveries Completed</h2>
+                    <p style={{ margin: 0, opacity: 0.85, fontSize: '0.88rem' }}>99.2% On-Time Delivery Record • Zero Customer Complaints</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>TODAY'S BONUS GOAL</span>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#4ADE80' }}>+₹150 Target Bonus</div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', opacity: 0.9, marginBottom: 4 }}>
+                    <span>Daily Target Progress</span>
+                    <span>{progressPercent}% Completed</span>
+                  </div>
+                  <div style={{ width: '100%', height: 10, background: 'rgba(255,255,255,0.15)', borderRadius: 5, overflow: 'hidden' }}>
+                    <div style={{ width: `${progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, #38BDF8, #4ADE80)', borderRadius: 5 }} />
+                  </div>
+                </div>
               </div>
-              <div style={{ width: '100%', height: 10, background: 'rgba(255,255,255,0.15)', borderRadius: 5, overflow: 'hidden' }}>
-                <div style={{ width: '80%', height: '100%', background: 'linear-gradient(90deg, #38BDF8, #4ADE80)', borderRadius: 5 }} />
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
           <div className="stats-grid">
             <div className="stat-card"><div className="stat-icon green"><Package size={24} /></div><div><div className="stat-value">{available.length}</div><div className="stat-label">Available</div></div></div>

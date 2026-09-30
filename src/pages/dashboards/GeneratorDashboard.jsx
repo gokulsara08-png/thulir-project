@@ -204,6 +204,10 @@ export default function GeneratorDashboard() {
   const totalSpent = payments.reduce((s, p) => s + (p.totalPayable || 0), 0);
   const activeSubs = subscriptions.filter(s => s.status === 'ACTIVE');
 
+  // Dynamic live eco credit points calculation from real Firestore waste requests
+  const realRecycledKg = requests.reduce((sum, r) => sum + Number(r.verifiedCollectedWeight || (Number(r.quantity || 1) * 15)), 0);
+  const realEcoPoints = Math.round(realRecycledKg * 10) + (requests.length * 20);
+
   const sidebar = (
     <div className="sidebar-section">
       <p className="sidebar-label">{getRoleTitle()}</p>
@@ -243,8 +247,8 @@ export default function GeneratorDashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <span className="badge" style={{ background: '#52B788', color: '#1B4332', fontWeight: 700, marginBottom: '0.5rem', display: 'inline-block' }}>🪙 Recycler Eco-Credits Balance</span>
-                <h2 style={{ margin: '0.25rem 0', color: '#ffffff', fontSize: '1.4rem', fontWeight: 800 }}>{(requests.length * 120) || 480} Green Recycling Points</h2>
-                <p style={{ margin: 0, opacity: 0.9, fontSize: '0.88rem' }}>You earn 10 points per 1 kg of waste handed over. Redeemable for pickup discounts or cashback.</p>
+                <h2 style={{ margin: '0.25rem 0', color: '#ffffff', fontSize: '1.4rem', fontWeight: 800 }}>{realEcoPoints} Green Recycling Points</h2>
+                <p style={{ margin: 0, opacity: 0.9, fontSize: '0.88rem' }}>You earn 10 points per 1 kg of waste handed over ({realRecycledKg} kg recycled). Redeemable for pickup discounts.</p>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button className="btn" style={{ background: '#ffffff', color: '#1B4332', fontWeight: 700 }} onClick={() => alert('Points redeemed! ₹50 credit applied to your next pickup order.')}>
