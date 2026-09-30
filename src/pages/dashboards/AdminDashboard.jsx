@@ -890,9 +890,10 @@ export default function AdminDashboard() {
         <>
           <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
             <div className="stat-card"><div className="stat-icon green"><IndianRupee size={24} /></div><div><div className="stat-value">₹{financials.totalAdminRevenue || 0}</div><div className="stat-label">Net Platform Revenue</div></div></div>
-            <div className="stat-card"><div className="stat-icon amber"><CreditCard size={24} /></div><div><div className="stat-value">₹{financials.totalMarketplaceCommission || 0}</div><div className="stat-label">Marketplace Commission (10%)</div></div></div>
-            <div className="stat-card"><div className="stat-icon green"><Leaf size={24} /></div><div><div className="stat-value">₹{financials.totalCommission || 0}</div><div className="stat-label">Waste Pickup Commission</div></div></div>
-            <div className="stat-card"><div className="stat-icon blue"><ShoppingBag size={24} /></div><div><div className="stat-value">₹{financials.totalOrderRevenue || 0}</div><div className="stat-label">Gross Order Sales</div></div></div>
+            <div className="stat-card"><div className="stat-icon amber"><CreditCard size={24} /></div><div><div className="stat-value">₹{financials.totalMarketplaceCommission || 0}</div><div className="stat-label">Marketplace Comm. (10%)</div></div></div>
+            <div className="stat-card"><div className="stat-icon green"><Leaf size={24} /></div><div><div className="stat-value">₹{financials.totalCommission || 0}</div><div className="stat-label">Waste Pickup Comm.</div></div></div>
+            <div className="stat-card"><div className="stat-icon blue"><Truck size={24} /></div><div><div className="stat-value">₹{financials.totalDeliveryCommission || 0}</div><div className="stat-label">Delivery Logistics Comm. (12%)</div></div></div>
+            <div className="stat-card"><div className="stat-icon rose"><ShoppingBag size={24} /></div><div><div className="stat-value">₹{financials.totalOrderRevenue || 0}</div><div className="stat-label">Gross Order Sales</div></div></div>
           </div>
 
           <div className="card">
