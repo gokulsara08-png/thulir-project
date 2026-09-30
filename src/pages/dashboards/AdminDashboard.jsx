@@ -87,22 +87,39 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => { 
-    loadData(); 
-    const timer = setInterval(loadData, 5000);
+    loadData(true); 
+    const timer = setInterval(() => loadData(false), 5000);
     return () => clearInterval(timer);
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
     try {
       const [s, u, w, o, p, d, pay, fin, r] = await Promise.all([
-        getStats(), getAllUsers(), getAllWasteRequests(), getAllOrders(), getAllProducts(), getAllDeliveryJobs(),
-        getAllWastePayments(), getFinancialSummary(), getCurrentRates()
+        getStats().catch(() => ({})), 
+        getAllUsers().catch(() => []), 
+        getAllWasteRequests().catch(() => []), 
+        getAllOrders().catch(() => []), 
+        getAllProducts().catch(() => []), 
+        getAllDeliveryJobs().catch(() => []),
+        getAllWastePayments().catch(() => []), 
+        getFinancialSummary().catch(() => ({})), 
+        getCurrentRates().catch(() => ({}))
       ]);
-      setStats(s); setUsers(u); setWasteRequests(w); setOrders(o); setProducts(p); setDeliveries(d);
-      setPayments(pay); setFinancials(fin); setRates(r); setRateForm(JSON.parse(JSON.stringify(r)));
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
+      setStats(s || {}); 
+      setUsers(u || []); 
+      setWasteRequests(w || []); 
+      setOrders(o || []); 
+      setProducts(p || []); 
+      setDeliveries(d || []);
+      setPayments(pay || []); 
+      setFinancials(fin || {}); 
+      if (r) { setRates(r); setRateForm(JSON.parse(JSON.stringify(r))); }
+    } catch (e) { 
+      console.warn('loadData warning:', e.message); 
+    } finally { 
+      if (isInitial) setLoading(false); 
+    }
   };
 
   const act = async (id, fn) => { 
