@@ -140,17 +140,22 @@ export async function getAllWastePayments() {
   return sortByDateDesc(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 }
 
-// Get all product orders (admin) - reuse from firestoreService
+// Get all product orders & delivery payments financial summary (admin)
 export async function getFinancialSummary() {
-  const paymentsSnap = await getDocs(collection(db, 'wastePayments'));
+  const [paymentsSnap, ordersSnap, deliverySnap] = await Promise.all([
+    getDocs(collection(db, 'wastePayments')),
+    getDocs(collection(db, 'orders')),
+    getDocs(collection(db, 'deliveryPayments'))
+  ]);
+
   const payments = paymentsSnap.docs.map(d => d.data());
-  
-  const ordersSnap = await getDocs(collection(db, 'orders'));
   const orders = ordersSnap.docs.map(d => d.data());
+  const deliveryPayments = deliverySnap.docs.map(d => d.data());
 
   const wasteCommission = payments.reduce((s, p) => s + (p.platformCommission || 0), 0);
   const marketplaceCommission = orders.reduce((s, o) => s + (o.platformCommission || Math.round((o.totalAmount || 0) * 0.10)), 0);
-  const totalAdminRevenue = wasteCommission + marketplaceCommission;
+  const deliveryCommission = deliveryPayments.reduce((s, d) => s + (d.commission || Math.round((d.totalDeliveryFee || 50) * 0.12)), 0);
+  const totalAdminRevenue = wasteCommission + marketplaceCommission + deliveryCommission;
 
   return {
     // Waste collection revenue
@@ -167,6 +172,10 @@ export async function getFinancialSummary() {
     totalOrders: orders.length,
     totalOrderRevenue: orders.reduce((s, o) => s + (o.totalAmount || 0), 0),
     totalMarketplaceCommission: marketplaceCommission,
+    // Delivery logistics commission
+    totalDeliveryPayments: deliveryPayments.length,
+    totalDeliveryCommission: deliveryCommission,
+    // Net Admin Revenue from all ecosystem connections
     totalAdminRevenue: totalAdminRevenue,
     completedOrders: orders.filter(o => o.status === 'DELIVERED').length,
   };
