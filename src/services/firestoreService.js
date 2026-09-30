@@ -471,7 +471,7 @@ export async function createOrder(userId, items, shippingAddress, extraData = {}
   const order = {
     orderId,
     consumerId: userId || 'demo-consumer',
-    consumerName: extraData.consumerName || 'Consumer User',
+    consumerName: extraData.consumerName || 'Sample Consumer',
     items: items.map(i => ({
       productId: i.productId || i.id || 'PRODUCT-DEMO',
       name: i.name || 'Eco Product',
@@ -483,9 +483,14 @@ export async function createOrder(userId, items, shippingAddress, extraData = {}
     platformCommissionPercent: 10,
     platformCommission,
     manufacturerPayoutAmount,
-    shippingAddress: shippingAddress || 'Tamil Nadu',
+    shippingAddress: shippingAddress || 'Gandhipuram, Coimbatore, Tamil Nadu',
     deliveryFee: extraData.deliveryFee || 55,
-    status: 'PLACED',
+    status: extraData.status || 'PLACED',
+    paymentStatus: extraData.paymentStatus || 'PAID',
+    paymentMethod: extraData.paymentMethod || 'UPI',
+    transactionId: extraData.transactionId || `TXN-${Date.now().toString().slice(-6)}`,
+    paidAt: extraData.paidAt || new Date().toISOString(),
+    isDemo: true,
     deliveryPartnerId: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
