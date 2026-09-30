@@ -33,16 +33,111 @@ export default function InteractiveAnalytics({
   const [inspectChart, setInspectChart] = useState(null); // Chart details modal
   const [showExportModal, setShowExportModal] = useState(false);
 
-  // 1. Requests / Orders Activity Trend (Actual recorded counts per month)
-  const activityItems = useMemo(() => (requests.length > 0 ? requests : orders), [requests, orders]);
+  // Role Configuration Mapping
+  const normRole = (role || 'general').toLowerCase();
+  const configKey = normRole.includes('transport') ? 'transport_partner' :
+                    normRole.includes('delivery') ? 'delivery_partner' :
+                    ['household', 'hotel', 'office', 'other', 'generator', 'waste_generator'].includes(normRole) ? 'generator' :
+                    ['consumer'].includes(normRole) ? 'consumer' :
+                    ['manufacturer'].includes(normRole) ? 'manufacturer' : 'admin';
+
+  const cfg = {
+    consumer: {
+      kpi1Title: 'Total Shopping Spent',
+      kpi2Title: 'Eco Products Ordered',
+      kpi2Unit: 'orders',
+      kpi3Title: 'Avg Order Spend',
+      chart1Title: '🛍️ Monthly Shopping Orders Growth',
+      chart1Unit: 'Orders',
+      chart2Title: '🏷️ Eco Product Category Rates (₹/unit)',
+      chart3Title: '💳 Monthly Consumer Expenditure (₹)',
+      chart3Label: 'Shopping Spent (₹)',
+      chart4Title: '🍰 Order Status & Product Category Share'
+    },
+    transport_partner: {
+      kpi1Title: 'Total Logistics Earnings',
+      kpi2Title: 'Waste Pickups Completed',
+      kpi2Unit: 'pickups',
+      kpi3Title: 'Avg Earning / Pickup',
+      chart1Title: '🚚 Completed Waste Pickups Growth',
+      chart1Unit: 'Pickups',
+      chart2Title: '🏷️ Distance & Bin Logistics Rates (₹/km)',
+      chart3Title: '💰 Driver Logistics Earnings Growth (₹)',
+      chart3Label: 'Driver Earnings (₹)',
+      chart4Title: '🍰 Pickup Status & Vehicle Breakdown'
+    },
+    delivery_partner: {
+      kpi1Title: 'Total Delivery Earnings',
+      kpi2Title: 'Eco Deliveries Completed',
+      kpi2Unit: 'deliveries',
+      kpi3Title: 'Avg Delivery Fee / Trip',
+      chart1Title: '📦 Eco-Product Deliveries Growth',
+      chart1Unit: 'Deliveries',
+      chart2Title: '🏷️ Delivery Fee Rates (Base ₹25 + ₹6/km)',
+      chart3Title: '💰 Delivery Earnings Growth Trend (₹)',
+      chart3Label: 'Delivery Earnings (₹)',
+      chart4Title: '🍰 Delivery Job Status Share'
+    },
+    manufacturer: {
+      kpi1Title: 'Total Sales & Material Value',
+      kpi2Title: 'Recycled Raw Material Processed',
+      kpi2Unit: 'kg',
+      kpi3Title: 'Avg Product Batch Value',
+      chart1Title: '🏭 Product Sales & Processing Growth',
+      chart1Unit: 'Batches/Orders',
+      chart2Title: '🏷️ Recycled Product Market Rates (₹/unit)',
+      chart3Title: '💰 Manufacturer Sales Revenue & Payouts (₹)',
+      chart3Label: 'Sales & Payouts (₹)',
+      chart4Title: '🍰 Raw Material Input & Sales Distribution'
+    },
+    generator: {
+      kpi1Title: 'Total Pickup Charges & Waste Value',
+      kpi2Title: 'Waste Diverted / Volume',
+      kpi2Unit: 'kg',
+      kpi3Title: 'Avg Request Value',
+      chart1Title: '📈 Waste Pickup Requests Growth',
+      chart1Unit: 'Requests',
+      chart2Title: '🏷️ Waste Material Rate Card (₹/kg)',
+      chart3Title: '💳 Pickup Charges & Waste Valuation Trend (₹)',
+      chart3Label: 'Pickup Charges (₹)',
+      chart4Title: '🍰 Waste Material Type Share & Request Status'
+    },
+    admin: {
+      kpi1Title: 'Total Ecosystem Value Processed',
+      kpi2Title: 'Platform Waste Diverted',
+      kpi2Unit: 'kg',
+      kpi3Title: 'Avg Platform Transaction Value',
+      chart1Title: '📈 Ecosystem Activity & Request Growth',
+      chart1Unit: 'Items/Requests',
+      chart2Title: '🏷️ Live Circular Price Rate Card (₹/kg)',
+      chart3Title: '💰 Platform Revenue & Payout Trends (₹)',
+      chart3Label: 'Ecosystem Value (₹)',
+      chart4Title: '🍰 Platform Material Share & User Breakdown'
+    }
+  }[configKey];
+
+  // 1. Activity Trend (Actual recorded counts per month)
+  const activityItems = useMemo(() => {
+    if (requests.length > 0) return requests;
+    if (orders.length > 0) return orders;
+    if (deliveries.length > 0) return deliveries;
+    return [];
+  }, [requests, orders, deliveries]);
   const rawRequestsTrend = useMemo(() => groupByMonth(activityItems), [activityItems]);
   const requestsTrend = useMemo(() => ({
     labels: rawRequestsTrend.labels,
     data: rawRequestsTrend.data
   }), [rawRequestsTrend]);
 
-  // 2. Spending / Revenue Trend (Actual recorded revenue per month)
-  const rawSpendingTrend = useMemo(() => groupSpendingByMonth(payments, 'totalPayable'), [payments]);
+  // 2. Spending / Revenue Items & Trend (Actual recorded revenue per month)
+  const paymentItems = useMemo(() => {
+    if (payments.length > 0) return payments;
+    if (orders.length > 0) return orders;
+    if (deliveries.length > 0) return deliveries;
+    if (requests.length > 0) return requests;
+    return [];
+  }, [payments, orders, deliveries, requests]);
+  const rawSpendingTrend = useMemo(() => groupSpendingByMonth(paymentItems, 'totalPayable'), [paymentItems]);
   const spendingTrend = useMemo(() => ({
     labels: rawSpendingTrend.labels,
     data: rawSpendingTrend.data
@@ -52,8 +147,9 @@ export default function InteractiveAnalytics({
   const wasteTypes = useMemo(() => {
     if (requests.length > 0) return countByField(requests, 'wasteType');
     if (orders.length > 0) return countByField(orders, 'status');
+    if (deliveries.length > 0) return countByField(deliveries, 'status');
     return countByField([], 'wasteType');
-  }, [requests, orders]);
+  }, [requests, orders, deliveries]);
   const userRolesDistribution = useMemo(() => countByField(users, 'role'), [users]);
   const orderStatusDistribution = useMemo(() => countByField(orders, 'status'), [orders]);
 
@@ -65,7 +161,8 @@ export default function InteractiveAnalytics({
   // 100% Real Dashboard Calculated Performance Metrics
   const realWasteRevenue = payments.reduce((sum, p) => sum + Number(p.totalPayable || p.amount || p.transportPayout || p.manufacturerPayout || 0), 0);
   const realOrderRevenue = orders.reduce((sum, o) => sum + Number(o.totalPrice || o.totalAmount || 0), 0);
-  const realTotalValue = realWasteRevenue + realOrderRevenue;
+  const realDeliveryRevenue = deliveries.length * 55;
+  const realTotalValue = realWasteRevenue || realOrderRevenue || realDeliveryRevenue || 0;
   
   const realTotalWeight = requests.reduce((sum, r) => sum + Number(r.verifiedWeight || r.weight || r.pricing?.estimatedWeightKg || 0), 0);
   
@@ -167,7 +264,7 @@ export default function InteractiveAnalytics({
       {/* KPI Highlight Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
         <div className="card" style={{ padding: '1rem', background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)', color: '#ffffff' }}>
-          <span style={{ fontSize: '0.75rem', opacity: 0.9, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Real Value Processed</span>
+          <span style={{ fontSize: '0.75rem', opacity: 0.9, textTransform: 'uppercase', letterSpacing: 0.5 }}>{cfg.kpi1Title}</span>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '4px 0', display: 'flex', alignItems: 'center', gap: 4 }}>
             ₹{realTotalValue.toLocaleString()}
           </div>
@@ -177,9 +274,9 @@ export default function InteractiveAnalytics({
         </div>
 
         <div className="card" style={{ padding: '1rem', borderLeft: '4px solid var(--color-primary)' }}>
-          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Waste Diverted / Volume</span>
+          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{cfg.kpi2Title}</span>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary-dark)', margin: '4px 0' }}>
-            {realTotalWeight > 0 ? `${realTotalWeight.toLocaleString()} kg` : `${totalVolume} items`}
+            {realTotalWeight > 0 ? `${realTotalWeight.toLocaleString()} kg` : `${totalVolume} ${cfg.kpi2Unit || 'items'}`}
           </div>
           <div style={{ fontSize: '0.72rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
             <TrendingUp size={14} /> Verified live throughput
@@ -187,7 +284,7 @@ export default function InteractiveAnalytics({
         </div>
 
         <div className="card" style={{ padding: '1rem', borderLeft: '4px solid #DDA15E' }}>
-          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Avg Order / Request Value</span>
+          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{cfg.kpi3Title}</span>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#b45309', margin: '4px 0' }}>
             ₹{avgOrderValue}
           </div>
@@ -215,32 +312,32 @@ export default function InteractiveAnalytics({
         {/* 1. Request / Activity Trend */}
         <div 
           className="card" 
-          onClick={() => setInspectChart({ title: 'Activity & Request Growth Trend', type: 'line', data: requestsTrend, unit: 'Requests' })}
+          onClick={() => setInspectChart({ title: cfg.chart1Title, type: 'line', data: requestsTrend, unit: cfg.chart1Unit })}
           style={{ cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--color-primary-dark)' }}>
-              📈 Activity & Request Growth
+              {cfg.chart1Title}
             </h3>
             <Maximize2 size={15} style={{ color: '#94a3b8' }} />
           </div>
-          <LineChart labels={requestsTrend.labels} datasets={[{ label: 'Requests', data: requestsTrend.data, fill: true, color: '#2D6A4F' }]} height={220} />
+          <LineChart labels={requestsTrend.labels} datasets={[{ label: cfg.chart1Unit, data: requestsTrend.data, fill: true, color: '#2D6A4F' }]} height={220} />
           <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textAlign: 'center', marginTop: 8 }}>💡 Click to expand & view breakdown</span>
         </div>
 
         {/* 2. Price Chart Analytics */}
         <div 
           className="card" 
-          onClick={() => setInspectChart({ title: 'Rate Card Price Analytics (₹ per kg)', type: 'bar', data: { labels: priceChartLabels, data: pricePerKgData }, unit: '₹ / kg' })}
+          onClick={() => setInspectChart({ title: cfg.chart2Title, type: 'bar', data: { labels: priceChartLabels, data: pricePerKgData }, unit: '₹ / unit' })}
           style={{ cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Tag size={16} style={{ color: '#DDA15E' }} /> Waste Material Rate Card (₹/kg)
+              <Tag size={16} style={{ color: '#DDA15E' }} /> {cfg.chart2Title}
             </h3>
             <Maximize2 size={15} style={{ color: '#94a3b8' }} />
           </div>
-          <BarChart labels={priceChartLabels} datasets={[{ label: 'Price per kg (₹)', data: pricePerKgData, color: '#DDA15E' }]} height={220} />
+          <BarChart labels={priceChartLabels} datasets={[{ label: 'Rate (₹)', data: pricePerKgData, color: '#DDA15E' }]} height={220} />
           <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textAlign: 'center', marginTop: 8 }}>💡 Click to inspect price rate table</span>
         </div>
 
@@ -248,7 +345,7 @@ export default function InteractiveAnalytics({
         <div 
           className="card" 
           onClick={() => setInspectChart({ 
-            title: ['generator', 'household', 'hotel', 'waste_generator', 'office', 'other'].includes(role) ? 'Waste Pickup Charges & Value Trend (₹)' : 'Financial & Revenue Trend (₹)', 
+            title: cfg.chart3Title, 
             type: 'line', 
             data: spendingTrend, 
             unit: '₹' 
@@ -257,25 +354,25 @@ export default function InteractiveAnalytics({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <IndianRupee size={16} style={{ color: '#3A86FF' }} /> {['generator', 'household', 'hotel', 'waste_generator', 'office', 'other'].includes(role) ? 'Pickup Charges & Value Trend' : 'Value & Earnings Trend'}
+              <IndianRupee size={16} style={{ color: '#3A86FF' }} /> {cfg.chart3Title}
             </h3>
             <Maximize2 size={15} style={{ color: '#94a3b8' }} />
           </div>
-          <LineChart labels={spendingTrend.labels} datasets={[{ label: ['generator', 'household', 'hotel', 'waste_generator', 'office', 'other'].includes(role) ? 'Pickup Charges (₹)' : 'Value (₹)', data: spendingTrend.data, fill: true, color: '#3A86FF' }]} height={220} />
+          <LineChart labels={spendingTrend.labels} datasets={[{ label: cfg.chart3Label, data: spendingTrend.data, fill: true, color: '#3A86FF' }]} height={220} />
           <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', textAlign: 'center', marginTop: 8 }}>
-            {['generator', 'household', 'hotel', 'waste_generator', 'office', 'other'].includes(role) ? '💡 Click to view pickup charges history' : '💡 Click for revenue projection'}
+            💡 Click for financial history & projections
           </span>
         </div>
 
-        {/* 4. Waste & Material Category Distribution */}
+        {/* 4. Category Distribution */}
         <div 
           className="card" 
-          onClick={() => setInspectChart({ title: 'Material Category Share', type: 'doughnut', data: wasteTypes, unit: 'Share' })}
+          onClick={() => setInspectChart({ title: cfg.chart4Title, type: 'doughnut', data: wasteTypes, unit: 'Share' })}
           style={{ cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--color-primary-dark)' }}>
-              🍰 Material Distribution Share
+              {cfg.chart4Title}
             </h3>
             <Maximize2 size={15} style={{ color: '#94a3b8' }} />
           </div>

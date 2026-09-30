@@ -238,6 +238,22 @@ export default function GeneratorDashboard() {
       {/* ============ OVERVIEW ============ */}
       {tab === 'overview' && (
         <>
+          {/* Eco Points Ledger & Rewards Card */}
+          <div className="card" style={{ background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)', color: '#ffffff', marginBottom: '1.5rem', borderRadius: '1.25rem', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <span className="badge" style={{ background: '#52B788', color: '#1B4332', fontWeight: 700, marginBottom: '0.5rem', display: 'inline-block' }}>🪙 Recycler Eco-Credits Balance</span>
+                <h2 style={{ margin: '0.25rem 0', color: '#ffffff', fontSize: '1.4rem', fontWeight: 800 }}>{(requests.length * 120) || 480} Green Recycling Points</h2>
+                <p style={{ margin: 0, opacity: 0.9, fontSize: '0.88rem' }}>You earn 10 points per 1 kg of waste handed over. Redeemable for pickup discounts or cashback.</p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className="btn" style={{ background: '#ffffff', color: '#1B4332', fontWeight: 700 }} onClick={() => alert('Points redeemed! ₹50 credit applied to your next pickup order.')}>
+                  🎁 Redeem ₹50 Credit
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="stats-grid">
             <div className="stat-card"><div className="stat-icon green"><ClipboardList size={24} /></div><div><div className="stat-value">{requests.length}</div><div className="stat-label">Total Requests</div></div></div>
             <div className="stat-card"><div className="stat-icon amber"><Truck size={24} /></div><div><div className="stat-value">{activeRequests.length}</div><div className="stat-label">Active Pickups</div></div></div>

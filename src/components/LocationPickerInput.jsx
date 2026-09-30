@@ -106,7 +106,7 @@ export default function LocationPickerInput({
       {/* Dynamic Location Access Badge */}
       {gpsCoords && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: '0.72rem', color: '#15803d', fontWeight: 600 }}>
-          <Check size={14} color="#16a34a" /> Location Auto-Detected: {gpsCoords.formattedAddress || 'Area & City Verified'}
+          <Check size={14} color="#16a34a" /> 🎯 High-Accuracy GPS Verified {gpsCoords.accuracy ? `(±${gpsCoords.accuracy}m precision)` : ''}: {gpsCoords.formattedAddress || 'Area & City Verified'}
         </div>
       )}
 

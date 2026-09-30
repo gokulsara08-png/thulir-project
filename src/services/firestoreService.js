@@ -410,22 +410,24 @@ export async function createProduct(data) {
   const product = {
     productId,
     name: data.name,
-    description: data.description,
-    category: data.category,
-    price: Number(data.price),
-    availableQuantity: Number(data.availableQuantity),
+    description: data.description || '',
+    category: data.category || 'Other',
+    price: Number(data.price || 0),
+    availableQuantity: Number(data.availableQuantity || 0),
     image: data.image || '',
-    manufacturerId: data.manufacturerId,
-    manufacturerName: data.manufacturerName || '',
+    manufacturerId: data.manufacturerId || 'admin-system',
+    manufacturerName: data.manufacturerName || 'THULIR Ecosystem',
     processingRecordId: data.processingRecordId || null,
     wasteRequestId: data.wasteRequestId || null,
     wasteType: data.wasteType || '',
-    published: true,
+    published: data.published !== false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };
   const docRef = await addDoc(collection(db, 'products'), product);
-  await safeNotify(data.manufacturerId, 'product_listed', `Your product "${data.name}" has been listed on the marketplace`, { productId, productDocId: docRef.id });
+  if (data.manufacturerId) {
+    await safeNotify(data.manufacturerId, 'product_listed', `Your product "${data.name}" has been listed on the marketplace`, { productId, productDocId: docRef.id });
+  }
   return { id: docRef.id, ...product };
 }
 
@@ -755,4 +757,16 @@ export async function getAllProducts() {
 export async function getAllDeliveryJobs() {
   const snap = await getDocs(collection(db, 'deliveryJobs'));
   return sortByCreatedAtDesc(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+}
+
+export async function deleteUserDoc(userDocId) {
+  const { deleteDoc, doc } = await import('firebase/firestore');
+  await deleteDoc(doc(db, 'users', userDocId));
+}
+
+export async function updateUserRoleOrDetails(userDocId, data) {
+  await updateDoc(doc(db, 'users', userDocId), {
+    ...data,
+    updatedAt: serverTimestamp()
+  });
 }

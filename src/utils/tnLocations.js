@@ -64,11 +64,12 @@ export function getUserLiveGPSLocation() {
           if (res.ok) {
             const data = await res.json();
             const addr = data.address || {};
-            const area = addr.suburb || addr.neighbourhood || addr.residential || addr.road || addr.village || '';
+            const road = addr.road || addr.street || addr.pedestrian || '';
+            const area = addr.suburb || addr.neighbourhood || addr.residential || addr.village || addr.industrial || '';
             const city = addr.city || addr.town || addr.municipality || addr.county || addr.district || '';
-            const state = addr.state || '';
+            const state = addr.state || 'Tamil Nadu';
             
-            const parts = [area, city, state].filter(Boolean);
+            const parts = [road, area, city, state].filter(Boolean);
             if (parts.length > 0) {
               detectedAddress = parts.join(', ');
             }
