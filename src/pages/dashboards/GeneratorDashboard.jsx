@@ -8,6 +8,7 @@ import InteractiveAnalytics from '../../components/InteractiveAnalytics';
 import GPSTracker from '../../components/GPSTracker';
 import { WasteJourney } from '../../components/ProductJourney';
 import LocationPickerInput from '../../components/LocationPickerInput';
+import CameraCaptureInput from '../../components/CameraCaptureInput';
 import { createWasteRequest, subscribeToUserWasteRequests } from '../../services/firestoreService';
 import { getCurrentRates, calculateWastePrice } from '../../services/pricingService';
 import { createWastePayment, subscribeToGeneratorPayments } from '../../services/financialService';
@@ -15,7 +16,7 @@ import { createSubscription, subscribeToUserSubscriptions, updateSubscriptionSta
 import { 
   LayoutDashboard, Plus, ClipboardList, Truck, User, 
   Package, AlertCircle, CheckCircle, Info, CreditCard, IndianRupee, BarChart3,
-  RefreshCw, CalendarClock, Pause, Play, XCircle, Zap
+  RefreshCw, CalendarClock, Pause, Play, XCircle, Zap, Camera
 } from 'lucide-react';
 
 const WASTE_TYPES = ['organic','foodWaste','plastic','paper','cardboard','glass','metal','eWaste','mixed','other'];
@@ -38,7 +39,7 @@ export default function GeneratorDashboard() {
 
   const [form, setForm] = useState({
     wasteType: '', binSize: 'medium', quantity: '1', numberOfBags: '1', weight: '',
-    pickupLocation: userData?.location || '', pickupCoords: null, pickupDate: '', pickupTime: '', additionalNotes: ''
+    pickupLocation: userData?.location || '', pickupCoords: null, pickupDate: '', pickupTime: '', additionalNotes: '', wastePhoto: ''
   });
 
   // Subscription form
@@ -109,7 +110,7 @@ export default function GeneratorDashboard() {
       }
 
       setSuccess(`Request ${result.wasteId} created! Estimated: ₹${pricing?.totalPayable || 0}`);
-      setForm({ wasteType: '', binSize: 'medium', quantity: '1', numberOfBags: '1', weight: '', pickupLocation: userData?.location || '', pickupDate: '', pickupTime: '', additionalNotes: '' });
+      setForm({ wasteType: '', binSize: 'medium', quantity: '1', numberOfBags: '1', weight: '', pickupLocation: userData?.location || '', pickupDate: '', pickupTime: '', additionalNotes: '', wastePhoto: '' });
       setTab('requests');
     } catch (err) { setError(err.message); }
     finally { setFormLoading(false); }
@@ -370,6 +371,13 @@ export default function GeneratorDashboard() {
               <label className="form-label">{t('waste.additionalNotes')}</label>
               <textarea className="form-input" value={form.additionalNotes} onChange={update('additionalNotes')} rows={2} />
             </div>
+
+            {/* Camera / Photo Upload Evidence */}
+            <CameraCaptureInput 
+              label="📷 Waste Condition Photo (Take Photo / Upload)" 
+              value={form.wastePhoto} 
+              onChange={val => setForm(f => ({ ...f, wastePhoto: val }))} 
+            />
 
             {/* Price Preview */}
             {pricePreview && (

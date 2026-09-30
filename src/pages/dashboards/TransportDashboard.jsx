@@ -6,9 +6,10 @@ import StatusTracker from '../../components/StatusTracker';
 import { LineChart, BarChart, DoughnutChart, groupByMonth, groupSpendingByMonth, countByField } from '../../components/Charts';
 import InteractiveAnalytics from '../../components/InteractiveAnalytics';
 import GPSTracker from '../../components/GPSTracker';
+import CameraCaptureInput from '../../components/CameraCaptureInput';
 import { subscribeToTransportPickups, updateTransportStatus } from '../../services/firestoreService';
 import { subscribeToTransportPayments } from '../../services/financialService';
-import { LayoutDashboard, Truck, Package, CheckCircle, History, User, MapPin, Scale, AlertCircle, IndianRupee, CreditCard, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Truck, Package, CheckCircle, History, User, MapPin, Scale, AlertCircle, IndianRupee, CreditCard, BarChart3, Camera, Image, ShieldCheck } from 'lucide-react';
 
 const TRANSPORT_STATUSES = ['TRANSPORT_ASSIGNED', 'ON_THE_WAY', 'COLLECTED', 'DELIVERED'];
 
@@ -23,6 +24,8 @@ export default function TransportDashboard() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [weightInput, setWeightInput] = useState('');
+  const [beforePhoto, setBeforePhoto] = useState('');
+  const [afterPhoto, setAfterPhoto] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -132,6 +135,19 @@ export default function TransportDashboard() {
         assignedPickups.map(p => (
           <div className="card" key={p.id} style={{ marginBottom: 'var(--space-4)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}><h3 style={{ fontWeight: 600 }}>{p.wasteId}</h3><span className="badge badge-warning">ASSIGNED</span></div>
+            
+            {/* Show Generator Submitted Waste Condition Photo */}
+            {p.wastePhoto && (
+              <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Image size={14} color="#2D6A4F" /> Generator's Submitted Waste Photo
+                </div>
+                <div style={{ width: 120, height: 90, borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                  <img src={p.wastePhoto} alt="Generator Evidence" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              </div>
+            )}
+
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginBottom: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div><strong>Type:</strong> {p.wasteType} | <strong>Bin:</strong> {p.binSize || '-'} | <strong>Qty:</strong> {p.quantity || p.numberOfBags}</div>
               <div><MapPin size={14} style={{ display: 'inline' }} /> {p.pickupLocation}</div>
@@ -156,14 +172,100 @@ export default function TransportDashboard() {
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}><h3 style={{ fontWeight: 600 }}>{p.wasteId}</h3><span className="badge badge-warning">{p.status}</span></div>
               <StatusTracker currentStatus={p.status} steps={TRANSPORT_STATUSES} />
-              {p.status === 'ON_THE_WAY' && (
-                <div style={{ marginTop: 'var(--space-4)' }}>
-                  <label className="form-label">Verified Weight (kg) — optional</label>
-                  <input type="number" className="form-input" placeholder="Weight after collection" value={weightInput} onChange={e => setWeightInput(e.target.value)} style={{ marginBottom: 'var(--space-3)' }} />
-                  <button className="btn btn-primary btn-sm" onClick={() => { act(p.id, () => updateTransportStatus(p.id, 'COLLECTED', weightInput ? { verifiedCollectedWeight: weightInput } : {})); setWeightInput(''); }} disabled={actionLoading === p.id}>✓ Mark Collected</button>
+
+              {/* Display Generator's Submitted Photo */}
+              {p.wastePhoto && (
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', marginTop: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Image size={14} color="#2D6A4F" /> Generator's Submitted Waste Photo
+                  </div>
+                  <div style={{ width: 120, height: 90, borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                    <img src={p.wastePhoto} alt="Generator Evidence" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
                 </div>
               )}
-              {p.status === 'COLLECTED' && <button className="btn btn-primary btn-sm mt-4" onClick={() => act(p.id, () => updateTransportStatus(p.id, 'DELIVERED'))} disabled={actionLoading === p.id}>📦 Mark Delivered</button>}
+
+              {p.status === 'ON_THE_WAY' && (
+                <div style={{ marginTop: 'var(--space-4)', background: '#F0FDF4', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #86EFAC' }}>
+                  <h4 style={{ margin: '0 0 0.75rem 0', fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ShieldCheck size={18} /> Collection Verification & Manual Weight Entry
+                  </h4>
+
+                  {/* Estimated vs Actual KG comparison */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>Estimated KG (Reported)</span>
+                      <span style={{ fontWeight: 700, color: '#334155' }}>{p.generatorReportedWeight ? `${p.generatorReportedWeight} kg` : '~25 kg'}</span>
+                    </div>
+                    <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '0.5rem', border: '1px solid #52B788' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#1B4332', display: 'block', fontWeight: 700 }}>Actual Measured KG *</span>
+                      <input 
+                        type="number" 
+                        className="form-input" 
+                        placeholder="Enter measured kg" 
+                        value={weightInput} 
+                        onChange={e => setWeightInput(e.target.value)} 
+                        style={{ padding: '4px 8px', fontSize: '0.85rem', marginTop: 2 }}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Before & After Camera Capture Inputs */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                    <CameraCaptureInput 
+                      label="📸 Before Collection Photo" 
+                      value={beforePhoto} 
+                      onChange={setBeforePhoto} 
+                    />
+                    <CameraCaptureInput 
+                      label="📸 After Collection Photo" 
+                      value={afterPhoto} 
+                      onChange={setAfterPhoto} 
+                    />
+                  </div>
+
+                  <button 
+                    className="btn btn-primary btn-sm w-full" 
+                    onClick={() => { 
+                      act(p.id, () => updateTransportStatus(p.id, 'COLLECTED', { 
+                        verifiedCollectedWeight: weightInput || 25,
+                        beforeCollectionPhoto: beforePhoto,
+                        afterCollectionPhoto: afterPhoto,
+                        collectedAt: new Date().toISOString()
+                      })); 
+                      setWeightInput(''); 
+                      setBeforePhoto('');
+                      setAfterPhoto('');
+                    }} 
+                    disabled={actionLoading === p.id}
+                    style={{ background: '#2D6A4F', borderColor: '#2D6A4F', fontWeight: 700, padding: '10px' }}
+                  >
+                    ✓ Confirm Collection & Verification Photos
+                  </button>
+                </div>
+              )}
+              {p.status === 'COLLECTED' && (
+                <div style={{ marginTop: '1rem' }}>
+                  {p.beforeCollectionPhoto && (
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Before Photo</div>
+                        <img src={p.beforeCollectionPhoto} alt="Before" style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                      </div>
+                      {p.afterCollectionPhoto && (
+                        <div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>After Photo</div>
+                          <img src={p.afterCollectionPhoto} alt="After" style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button className="btn btn-primary btn-sm" onClick={() => act(p.id, () => updateTransportStatus(p.id, 'DELIVERED'))} disabled={actionLoading === p.id}>
+                    📦 Mark Delivered to Manufacturing Hub
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))

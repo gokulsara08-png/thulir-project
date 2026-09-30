@@ -472,10 +472,9 @@ export default function AdminDashboard() {
                 <th>Date & Time</th>
                 <th>Request ID</th>
                 <th>Waste Type</th>
-                <th>Bin Size</th>
-                <th>Qty</th>
+                <th>Bin / Qty</th>
+                <th>Photo Evidence</th>
                 <th>Pickup Address</th>
-                <th>Geo Coordinates</th>
                 <th>Amount (₹)</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -489,18 +488,16 @@ export default function AdminDashboard() {
                   </td>
                   <td style={{ fontWeight: 700 }}>{w.wasteId}</td>
                   <td>{w.wasteType}</td>
-                  <td>{w.binSize}</td>
-                  <td>{w.quantity}</td>
-                  <td style={{ maxWidth: 180 }}>{w.pickupLocation}</td>
+                  <td>{w.binSize} ({w.quantity} bins)</td>
                   <td>
-                    {w.pickupCoords ? (
-                      <span className="badge badge-success" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: 4, background: '#D8F3DC', color: '#1B4332' }}>
-                        📍 {Number(w.pickupCoords.lat).toFixed(4)}°N, {Number(w.pickupCoords.lng).toFixed(4)}°E {w.pickupCoords.accuracy ? `(±${w.pickupCoords.accuracy}m)` : ''}
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>City Address Only</span>
-                    )}
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      {w.wastePhoto && <img src={w.wastePhoto} title="Generator Photo" alt="Generator" style={{ width: 32, height: 32, borderRadius: 4, objectFit: 'cover', border: '1px solid #cbd5e1' }} />}
+                      {w.beforeCollectionPhoto && <img src={w.beforeCollectionPhoto} title="Before Pickup Photo" alt="Before" style={{ width: 32, height: 32, borderRadius: 4, objectFit: 'cover', border: '1px solid #3B82F6' }} />}
+                      {w.afterCollectionPhoto && <img src={w.afterCollectionPhoto} title="After Pickup Photo" alt="After" style={{ width: 32, height: 32, borderRadius: 4, objectFit: 'cover', border: '1px solid #10B981' }} />}
+                      {!w.wastePhoto && !w.beforeCollectionPhoto && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>No Photo</span>}
+                    </div>
                   </td>
+                  <td style={{ maxWidth: 180 }}>{w.pickupLocation}</td>
                   <td>₹{w.pricing?.totalPayable || '-'}</td>
                   <td>
                     <span className={`badge ${w.status === 'COMPLETED' ? 'badge-success' : w.status === 'REJECTED' ? 'badge-error' : 'badge-warning'}`}>
@@ -509,7 +506,7 @@ export default function AdminDashboard() {
                   </td>
                   <td>
                     <button className="btn btn-primary btn-sm" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => setSelectedJourney(w)}>
-                      <Route size={13} /> View Journey
+                      <Route size={13} /> View Evidence & Journey
                     </button>
                   </td>
                 </tr>
@@ -874,6 +871,21 @@ export default function AdminDashboard() {
                 <span>Grand Total</span>
                 <span>₹{inspectOrder.totalAmount}</span>
               </div>
+
+              {/* Consumer Review & Photo Evidence */}
+              {(inspectOrder.feedbackPhoto || inspectOrder.feedbackText) && (
+                <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1' }}>
+                  <h5 style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    ⭐ Consumer Review Evidence ({inspectOrder.rating || 5}/5 Stars)
+                  </h5>
+                  {inspectOrder.feedbackText && <p style={{ fontSize: '0.8rem', color: '#475569', fontStyle: 'italic', margin: '0 0 6px 0' }}>"{inspectOrder.feedbackText}"</p>}
+                  {inspectOrder.feedbackPhoto && (
+                    <div style={{ width: 100, height: 80, borderRadius: 6, overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                      <img src={inspectOrder.feedbackPhoto} alt="Consumer evidence" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* ADMIN PAYMENT INFO EDITING FORM */}

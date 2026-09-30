@@ -64,6 +64,7 @@ export async function createWasteRequest(userId, data) {
     pickupTime: data.pickupTime,
     distanceKm: data.distanceKm ? Number(data.distanceKm) : 0,
     additionalNotes: data.additionalNotes || '',
+    wastePhoto: data.wastePhoto || null,
     status: 'REQUESTED',
     weightStatus: data.weight ? 'ESTIMATED' : 'NOT_MEASURED',
     verifiedCollectedWeight: null,
@@ -556,6 +557,18 @@ export async function updateOrderPaymentInfo(orderDocId, paymentData) {
     transactionId: paymentData.transactionId || `TXN-${Date.now().toString().slice(-6)}`,
     platformCommission: Number(paymentData.platformCommission || 0),
     paidAt: paymentData.paidAt || new Date().toISOString(),
+    updatedAt: serverTimestamp()
+  });
+}
+
+// Add feedback & photo review to order (Consumer feature)
+export async function addOrderFeedback(orderDocId, { rating, feedbackText, feedbackPhoto }) {
+  const ref = doc(db, 'orders', orderDocId);
+  await updateDoc(ref, {
+    rating: Number(rating || 5),
+    feedbackText: feedbackText || '',
+    feedbackPhoto: feedbackPhoto || null,
+    feedbackSubmittedAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 }

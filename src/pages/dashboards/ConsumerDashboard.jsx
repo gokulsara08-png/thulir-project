@@ -8,8 +8,9 @@ import StatusTracker from '../../components/StatusTracker';
 import GPSTracker from '../../components/GPSTracker';
 import ProductJourney from '../../components/ProductJourney';
 import InteractiveAnalytics from '../../components/InteractiveAnalytics';
-import { subscribeToProducts, subscribeToConsumerOrders, getProductJourney } from '../../services/firestoreService';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Heart, Package, Truck, Search, User, CheckCircle, Leaf, Check, Scale, Factory, BarChart3, IndianRupee } from 'lucide-react';
+import CameraCaptureInput from '../../components/CameraCaptureInput';
+import { subscribeToProducts, subscribeToConsumerOrders, getProductJourney, addOrderFeedback } from '../../services/firestoreService';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Heart, Package, Truck, Search, User, CheckCircle, Leaf, Check, Scale, Factory, BarChart3, IndianRupee, Star, Camera, MessageSquare } from 'lucide-react';
 import { getProductImage } from '../../utils/productImages';
 
 const ORDER_STATUSES = ['PLACED','CONFIRMED','PROCESSING','READY_FOR_DELIVERY','DELIVERY_ASSIGNED','OUT_FOR_DELIVERY','DELIVERED'];
@@ -26,6 +27,12 @@ export default function ConsumerDashboard() {
   const [journey, setJourney] = useState(null);
   const [journeyLoading, setJourneyLoading] = useState(false);
   const [addedId, setAddedId] = useState(null);
+
+  // Review & Camera feedback modal state
+  const [reviewModalOrder, setReviewModalOrder] = useState(null);
+  const [rating, setRating] = useState(5);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackPhoto, setFeedbackPhoto] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -177,17 +184,126 @@ export default function ConsumerDashboard() {
 
       {tab === 'orders' && (
         orders.length === 0 ? <div className="empty-state"><Package size={48} /><p className="empty-state-title">No orders yet</p></div> :
-        <div className="card"><table className="data-table">
-          <thead><tr><th>Order ID</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
-          <tbody>{orders.map(o => (
-            <tr key={o.id}>
-              <td style={{ fontWeight: 600 }}>{o.orderId}</td>
-              <td>{o.items?.length} items</td>
-              <td>₹{o.totalAmount}</td>
-              <td><span className={`badge ${o.status === 'DELIVERED' ? 'badge-success' : 'badge-warning'}`}>{o.status}</span></td>
-            </tr>
-          ))}</tbody>
-        </table></div>
+        <div className="card">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Feedback & Review</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id}>
+                  <td style={{ fontWeight: 600 }}>{o.orderId}</td>
+                  <td>{o.items?.length} items</td>
+                  <td>₹{o.totalAmount}</td>
+                  <td><span className={`badge ${o.status === 'DELIVERED' ? 'badge-success' : 'badge-warning'}`}>{o.status}</span></td>
+                  <td>
+                    {o.feedbackSubmittedAt ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>⭐ {o.rating || 5}/5 Verified</span>
+                        {o.feedbackPhoto && <img src={o.feedbackPhoto} alt="Review evidence" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover' }} />}
+                      </div>
+                    ) : (
+                      <button 
+                        className="btn btn-secondary btn-sm" 
+                        style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        onClick={() => {
+                          setReviewModalOrder(o);
+                          setRating(5);
+                          setFeedbackText('');
+                          setFeedbackPhoto('');
+                        }}
+                      >
+                        <Star size={13} color="#D97706" /> Add Feedback Photo
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* FEEDBACK & PHOTO REVIEW MODAL */}
+      {reviewModalOrder && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem' }}>
+          <div className="card" style={{ maxWidth: 540, width: '100%', background: '#ffffff', borderRadius: '1.25rem', padding: '1.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Star size={20} color="#D97706" /> Order Feedback & Photo Review
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Order Ref: {reviewModalOrder.orderId}</span>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setReviewModalOrder(null)}>✕</button>
+            </div>
+
+            {/* Star Rating Picker */}
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label className="form-label" style={{ fontWeight: 600 }}>Rating (1 - 5 Stars)</label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: 4 }}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      fontSize: '1.5rem',
+                      cursor: 'pointer',
+                      color: star <= rating ? '#F59E0B' : '#CBD5E1',
+                      transition: 'transform 0.1s ease'
+                    }}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Written Feedback Input */}
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label className="form-label" style={{ fontWeight: 600 }}>Written Review</label>
+              <textarea 
+                className="form-input" 
+                rows={3} 
+                value={feedbackText} 
+                onChange={e => setFeedbackText(e.target.value)} 
+                placeholder="Share your experience with the upcycled eco product..."
+              />
+            </div>
+
+            {/* Camera / Photo Upload Input */}
+            <CameraCaptureInput 
+              label="📷 Product / Received-Product Photo (Take Photo / Upload)" 
+              value={feedbackPhoto} 
+              onChange={setFeedbackPhoto} 
+            />
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.25rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setReviewModalOrder(null)}>Cancel</button>
+              <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    await addOrderFeedback(reviewModalOrder.id, { rating, feedbackText, feedbackPhoto });
+                    setReviewModalOrder(null);
+                  } catch (e) { console.error(e); }
+                }}
+              >
+                Submit Review Photo
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {tab === 'tracking' && (
