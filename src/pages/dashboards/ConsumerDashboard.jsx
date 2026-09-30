@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useCart } from '../../contexts/CartContext';
@@ -19,7 +19,8 @@ export default function ConsumerDashboard() {
   const { user, userData } = useAuth();
   const { t } = useLanguage();
   const { addToCart } = useCart();
-  const [tab, setTab] = useState('home');
+  const location = useLocation();
+  const [tab, setTab] = useState(location.state?.tab || 'home');
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,12 @@ export default function ConsumerDashboard() {
   const [rating, setRating] = useState(5);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackPhoto, setFeedbackPhoto] = useState('');
+
+  useEffect(() => {
+    if (location.state?.tab) {
+      setTab(location.state.tab);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (!user) return;
@@ -83,6 +90,7 @@ export default function ConsumerDashboard() {
         { key: 'marketplace', icon: <ShoppingBag size={18} />, label: t('marketplace.title') },
         { key: 'rewards', icon: <Leaf size={18} />, label: 'Eco Rewards & Coupons' },
         { key: 'orders', icon: <Package size={18} />, label: t('dashboard.myOrders') },
+        { key: 'feedback', icon: <Star size={18} />, label: '⭐ Feedback & Photo Reviews' },
         { key: 'tracking', icon: <Truck size={18} />, label: t('dashboard.trackDelivery') },
         { key: 'charts', icon: <BarChart3 size={18} />, label: 'Analytics' },
         { key: 'cart', icon: <ShoppingCart size={18} />, label: t('dashboard.cart') },
@@ -98,7 +106,17 @@ export default function ConsumerDashboard() {
   return (
     <DashboardLayout sidebar={sidebar}>
       <div className="dashboard-header">
-        <h1 className="dashboard-title">{tab === 'home' ? `Welcome, ${userData?.fullName || 'Consumer'}` : tab === 'marketplace' ? t('marketplace.title') : tab === 'rewards' ? '🎁 Eco Rewards & Coupon Hub' : tab === 'orders' ? t('dashboard.myOrders') : tab === 'tracking' ? t('dashboard.trackDelivery') : tab === 'journey' ? t('dashboard.productJourney') : tab === 'cart' ? t('dashboard.cart') : t('dashboard.profile')}</h1>
+        <h1 className="dashboard-title">
+          {tab === 'home' ? `Welcome, ${userData?.fullName || 'Consumer'}` : 
+           tab === 'marketplace' ? t('marketplace.title') : 
+           tab === 'rewards' ? '🎁 Eco Rewards & Coupon Hub' : 
+           tab === 'orders' ? t('dashboard.myOrders') : 
+           tab === 'feedback' ? '⭐ Feedback & Photo Reviews' : 
+           tab === 'tracking' ? t('dashboard.trackDelivery') : 
+           tab === 'journey' ? t('dashboard.productJourney') : 
+           tab === 'cart' ? t('dashboard.cart') : 
+           t('dashboard.profile')}
+        </h1>
         <p className="dashboard-subtitle">{t('roles.consumer')}</p>
       </div>
 
@@ -143,6 +161,58 @@ export default function ConsumerDashboard() {
               ))}
             </div>
           )}
+
+          {/* Quick Feedback & Photo Review Section on Home Tab */}
+          <div className="card" style={{ marginTop: '1.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 800, color: 'var(--color-primary-dark)', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Star size={20} color="#D97706" /> ⭐ Consumer Feedback & Photo Reviews
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Rate your purchased eco products and upload photo evidence of received items.</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setTab('feedback')} style={{ fontWeight: 700 }}>
+                View All Feedback →
+              </button>
+            </div>
+
+            {orders.length === 0 ? (
+              <div style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                No completed orders yet to leave feedback on.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.75rem' }}>
+                {orders.slice(0, 2).map(o => (
+                  <div key={o.id} style={{ background: '#ffffff', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #cbd5e1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>{o.orderId}</span>
+                      <span className={`badge ${o.status === 'DELIVERED' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.68rem' }}>{o.status}</span>
+                    </div>
+                    {o.feedbackSubmittedAt ? (
+                      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: '#D97706', fontWeight: 800, fontSize: '0.85rem' }}>{'★'.repeat(o.rating || 5)}</span>
+                        <span style={{ color: '#16a34a', fontSize: '0.72rem', fontWeight: 700 }}>✓ Verified Review</span>
+                        {o.feedbackPhoto && <img src={o.feedbackPhoto} alt="Review" style={{ width: 26, height: 26, borderRadius: 4, objectFit: 'cover' }} />}
+                      </div>
+                    ) : (
+                      <button
+                        className="btn btn-primary btn-sm w-full"
+                        style={{ marginTop: 8, fontSize: '0.78rem', background: '#2D6A4F', borderColor: '#2D6A4F' }}
+                        onClick={() => {
+                          setReviewModalOrder(o);
+                          setRating(5);
+                          setFeedbackText('');
+                          setFeedbackPhoto('');
+                        }}
+                      >
+                        <Camera size={13} /> ⭐ Leave Feedback & Photo
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </>
       )}
 
@@ -303,6 +373,69 @@ export default function ConsumerDashboard() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {tab === 'feedback' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: 'var(--color-primary-dark)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Star size={20} color="#D97706" /> Product Reviews & Photo Evidence Portal
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Rate your purchased upcycled products and upload real received-product photos.</p>
+            </div>
+          </div>
+
+          {orders.length === 0 ? (
+            <div className="empty-state">
+              <MessageSquare size={48} />
+              <p className="empty-state-title">No orders available for review yet</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+              {orders.map(o => (
+                <div key={o.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1rem', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ fontWeight: 800, color: 'var(--color-primary-dark)' }}>{o.orderId}</span>
+                    <span className={`badge ${o.status === 'DELIVERED' ? 'badge-success' : 'badge-warning'}`}>{o.status}</span>
+                  </div>
+
+                  <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.75rem' }}>
+                    <strong>Items:</strong> {o.items?.map(i => i.name).join(', ') || 'Eco Goods'} (₹{o.totalAmount})
+                  </div>
+
+                  {o.feedbackSubmittedAt ? (
+                    <div style={{ background: '#ffffff', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ color: '#D97706', fontWeight: 800 }}>{'★'.repeat(o.rating || 5)} ({o.rating || 5}/5)</span>
+                        <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 700 }}>✓ Verified Review</span>
+                      </div>
+                      {o.feedbackText && <p style={{ fontSize: '0.8rem', color: '#475569', fontStyle: 'italic', margin: '4px 0' }}>"{o.feedbackText}"</p>}
+                      {o.feedbackPhoto && (
+                        <div style={{ width: 90, height: 70, borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #cbd5e1', marginTop: 6 }}>
+                          <img src={o.feedbackPhoto} alt="Review Evidence" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button 
+                      className="btn btn-primary btn-sm w-full"
+                      onClick={() => {
+                        setReviewModalOrder(o);
+                        setRating(5);
+                        setFeedbackText('');
+                        setFeedbackPhoto('');
+                      }}
+                      style={{ background: '#2D6A4F', borderColor: '#2D6A4F', fontWeight: 700 }}
+                    >
+                      <Camera size={14} /> Take / Upload Product Photo Review
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

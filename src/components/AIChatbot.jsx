@@ -495,7 +495,7 @@ export default function AIChatbot() {
 
   const handleActionClick = (actionItem) => {
     if (actionItem.action === 'navigate' && actionItem.route) {
-      navigate(actionItem.route);
+      navigate(actionItem.route, actionItem.state ? { state: actionItem.state } : undefined);
       setIsMinimized(true);
     }
   };
@@ -621,6 +621,23 @@ export default function AIChatbot() {
           { label: "🌿 About THULIR Vision →", action: 'navigate', route: '/about' },
           { label: "🛍️ Explore Marketplace →", action: 'navigate', route: '/marketplace' }
         ]
+      };
+    }
+
+    // 1b. CONSUMER FEEDBACK & PHOTO REVIEWS INTENT
+    const feedbackKeywords = ['feedback', 'review', 'rating', 'star', 'comment', 'photo review', 'கருத்து', 'மதிப்பீடு', 'பின்னூட்டம்', 'फीडबैक', 'समीक्षा', 'അഭിപ്രായം', 'ഫിഡ്ബാക്ക്', 'ఫీడ్‌బ్యాక్', 'ಫೀಡ್‌ಬ್ಯಾಕ್'];
+    if (feedbackKeywords.some(k => q.includes(k))) {
+      if (currentUser && userRole === 'consumer') {
+        return {
+          text: "⭐ Directing you to the ⭐ Feedback & Photo Reviews section on your Consumer Dashboard! You can rate your orders from 1 to 5 stars, write reviews, and upload photo evidence of received eco products.",
+          autoNavigate: true,
+          actions: [{ label: "⭐ Open Consumer Feedback & Photo Reviews →", action: 'navigate', route: '/dashboard/consumer', state: { tab: 'feedback' } }]
+        };
+      }
+      return {
+        text: "⭐ Consumer Feedback & Photo Reviews let consumers rate upcycled products and upload photo proof. Please log in with a Consumer account to access the Feedback portal.",
+        autoNavigate: true,
+        actions: [{ label: "🔑 Log in as Consumer →", action: 'navigate', route: '/login' }]
       };
     }
 
@@ -819,41 +836,49 @@ export default function AIChatbot() {
     if (geminiApiKey && geminiApiKey.length > 5) {
       try {
         const targetLang = currentLangObj.label;
-        
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `You are THULIR Civic Copilot 🌿, the official AI assistant for THULIR Smart Waste Management circular platform.
+        const promptText = `You are THULIR Civic Copilot 🌿, the official AI assistant for THULIR Smart Waste Management circular platform.
 You understand all 6 stakeholder roles and their internal dashboard features:
 1. Waste Generator (Household/Hotel): Submit pickup requests, view request status, track eco points & pickup charges, setup daily/weekly subscriptions.
 2. Transport & Collection Partner: Accept pending pickups, GPS route navigation, log vehicle number, track per-km distance earnings.
 3. Manufacturer & Recycler: Accept raw waste shipments, log processing/upcycling into compost/pellets, list eco-products on marketplace.
-4. Consumer: Browse Eco Marketplace, buy upcycled goods, track delivery, earn eco impact reward points.
+4. Consumer: Browse Eco Marketplace, buy upcycled goods, track delivery, leave star feedback & photo reviews, earn eco impact reward points.
 5. Delivery Partner: Accept marketplace package delivery jobs, update status to delivered, view per-delivery earnings.
 6. Admin: Overview system metrics, approve new partner accounts, set platform commission & per-km transport rates.
 
-Answer concisely, accurately, and helpfully in ${targetLang} language for the user question:\n\n${userQuery}`
-              }]
-            }]
-          })
-        });
+Answer concisely, accurately, and helpfully in ${targetLang} language for the user question:\n\n${userQuery}`;
 
-        if (response.ok) {
-          const data = await response.json();
-          const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (aiText) {
-            return {
-              text: aiText,
-              actions: [
-                { label: "ℹ️ View How It Works →", action: 'navigate', route: '/how-it-works' },
-                { label: "🌿 About THULIR Project →", action: 'navigate', route: '/about' },
-                { label: tCopilot.buttons.products, action: 'navigate', route: '/marketplace' }
-              ]
-            };
+        const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'];
+        let aiText = null;
+
+        for (const modelName of modelsToTry) {
+          try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: promptText }] }]
+              })
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (aiText) break;
+            }
+          } catch (modelErr) {
+            console.warn(`Model ${modelName} fetch error:`, modelErr);
           }
+        }
+
+        if (aiText) {
+          return {
+            text: aiText,
+            actions: [
+              { label: "ℹ️ View How It Works →", action: 'navigate', route: '/how-it-works' },
+              { label: "🌿 About THULIR Project →", action: 'navigate', route: '/about' },
+              { label: tCopilot.buttons.products, action: 'navigate', route: '/marketplace' }
+            ]
+          };
         }
       } catch (err) {
         console.warn("Gemini API call warning:", err);

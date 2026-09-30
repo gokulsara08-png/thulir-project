@@ -152,25 +152,26 @@ export async function getFinancialSummary() {
   const orders = ordersSnap.docs.map(d => d.data());
   const deliveryPayments = deliverySnap.docs.map(d => d.data());
 
-  const wasteCommission = payments.reduce((s, p) => s + (p.platformCommission || 0), 0);
-  const marketplaceCommission = orders.reduce((s, o) => s + (o.platformCommission || Math.round((o.totalAmount || 0) * 0.10)), 0);
-  const deliveryCommission = deliveryPayments.reduce((s, d) => s + (d.commission || Math.round((d.totalDeliveryFee || 50) * 0.12)), 0);
+  const wasteCommission = payments.reduce((s, p) => s + Number(p.platformCommission || 0), 0);
+  const totalOrderRevenue = orders.reduce((s, o) => s + Number(o.totalAmount || 0), 0);
+  const marketplaceCommission = orders.reduce((s, o) => s + Number(o.platformCommission || Math.round(Number(o.totalAmount || 0) * 0.10)), 0);
+  const deliveryCommission = deliveryPayments.reduce((s, d) => s + Number(d.commission || Math.round(Number(d.totalDeliveryFee || 50) * 0.12)), 0);
   const totalAdminRevenue = wasteCommission + marketplaceCommission + deliveryCommission;
 
   return {
     // Waste collection revenue
     totalWastePayments: payments.length,
-    totalWasteRevenue: payments.reduce((s, p) => s + (p.totalPayable || 0), 0),
+    totalWasteRevenue: payments.reduce((s, p) => s + Number(p.totalPayable || 0), 0),
     paidWastePayments: payments.filter(p => p.paymentStatus === 'PAID').length,
     pendingWastePayments: payments.filter(p => p.paymentStatus === 'PENDING').length,
     totalCommission: wasteCommission,
-    totalTransportPayouts: payments.reduce((s, p) => s + (p.transportPayout || 0), 0),
-    totalManufacturerPayouts: payments.reduce((s, p) => s + (p.manufacturerPayout || 0), 0),
-    pendingTransportPayouts: payments.filter(p => p.transportPayoutStatus === 'PENDING').reduce((s, p) => s + (p.transportPayout || 0), 0),
-    pendingManufacturerPayouts: payments.filter(p => p.manufacturerPayoutStatus === 'PENDING').reduce((s, p) => s + (p.manufacturerPayout || 0), 0),
-    // Product order revenue & Marketplace Commission
+    totalTransportPayouts: payments.reduce((s, p) => s + Number(p.transportPayout || 0), 0),
+    totalManufacturerPayouts: payments.reduce((s, p) => s + Number(p.manufacturerPayout || 0), 0),
+    pendingTransportPayouts: payments.filter(p => p.transportPayoutStatus === 'PENDING').reduce((s, p) => s + Number(p.transportPayout || 0), 0),
+    pendingManufacturerPayouts: payments.filter(p => p.manufacturerPayoutStatus === 'PENDING').reduce((s, p) => s + Number(p.manufacturerPayout || 0), 0),
+    // Product order revenue & Marketplace Commission (Gross Order Sales)
     totalOrders: orders.length,
-    totalOrderRevenue: orders.reduce((s, o) => s + (o.totalAmount || 0), 0),
+    totalOrderRevenue: totalOrderRevenue,
     totalMarketplaceCommission: marketplaceCommission,
     // Delivery logistics commission
     totalDeliveryPayments: deliveryPayments.length,
