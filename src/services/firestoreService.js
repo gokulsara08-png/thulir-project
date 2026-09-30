@@ -542,6 +542,36 @@ export async function updateOrderStatus(orderDocId, status, extraData = {}) {
   }
 }
 
+// Update payment details for an order (Admin control feature)
+export async function updateOrderPaymentInfo(orderDocId, paymentData) {
+  const ref = doc(db, 'orders', orderDocId);
+  await updateDoc(ref, {
+    paymentStatus: paymentData.paymentStatus || 'PAID',
+    paymentMethod: paymentData.paymentMethod || 'UPI',
+    transactionId: paymentData.transactionId || `TXN-${Date.now().toString().slice(-6)}`,
+    platformCommission: Number(paymentData.platformCommission || 0),
+    paidAt: paymentData.paidAt || new Date().toISOString(),
+    updatedAt: serverTimestamp()
+  });
+}
+
+// 1-Click Instant Demo Order Creation
+export async function createDemoOrder(userId = 'demo-consumer', customDetails = {}) {
+  const sampleItems = [
+    { productId: 'PROD-ECO-01', name: 'Upcycled Organic Bio Compost (10kg)', price: 350, quantity: 2 },
+    { productId: 'PROD-ECO-02', name: 'Recycled HDPE Heavy-Duty Planters', price: 220, quantity: 1 }
+  ];
+  return await createOrder(userId, sampleItems, customDetails.shippingAddress || 'Demo Location, Chennai, Tamil Nadu', {
+    deliveryFee: 55,
+    grandTotal: 975,
+    consumerName: customDetails.consumerName || 'Demo Consumer User',
+    paymentMethod: customDetails.paymentMethod || 'UPI',
+    paymentStatus: customDetails.paymentStatus || 'PAID',
+    transactionId: `TXN-DEMO-${Math.floor(100000 + Math.random() * 900000)}`,
+    paidAt: new Date().toISOString()
+  });
+}
+
 export function subscribeToConsumerOrders(consumerId, callback) {
   return onSnapshot(collection(db, 'orders'), (snap) => {
     const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));

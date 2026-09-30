@@ -8,7 +8,7 @@ import ProductJourney from '../../components/ProductJourney';
 import { 
   getStats, getAllUsers, getAllWasteRequests, getAllOrders, 
   getAllProducts, getAllDeliveryJobs, updateProduct, createProduct,
-  updateOrderStatus, deleteUserDoc, updateUserRoleOrDetails 
+  updateOrderStatus, updateOrderPaymentInfo, createDemoOrder, deleteUserDoc, updateUserRoleOrDetails 
 } from '../../services/firestoreService';
 import { getCurrentRates, updateRateCard } from '../../services/pricingService';
 import { 
@@ -756,13 +756,27 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <h3 style={{ fontWeight: 800, fontSize: '1.1rem', margin: 0, color: 'var(--color-primary-dark)' }}>🛒 Marketplace Orders Management</h3>
-              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Inspect consumer orders, 10% platform commission breakdown, and update order statuses.</p>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Inspect consumer orders, 10% platform commission breakdown, and update payment information.</p>
             </div>
 
-            <select className="form-select" style={{ fontSize: '0.85rem', minWidth: 160 }} value={orderStatusFilter} onChange={e => setOrderStatusFilter(e.target.value)}>
-              <option value="ALL">All Statuses ({orders.length})</option>
-              {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <button 
+                className="btn btn-primary btn-sm" 
+                style={{ background: '#2D6A4F', borderColor: '#2D6A4F', display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+                onClick={() => {
+                  act('demoOrder', async () => {
+                    await createDemoOrder('demo-consumer', { consumerName: 'Demo Consumer User', shippingAddress: 'THULIR Eco Hub, T.Nagar, Chennai' });
+                  });
+                }}
+              >
+                ⚡ Create 1-Click Demo Order
+              </button>
+
+              <select className="form-select" style={{ fontSize: '0.85rem', minWidth: 160 }} value={orderStatusFilter} onChange={e => setOrderStatusFilter(e.target.value)}>
+                <option value="ALL">All Statuses ({orders.length})</option>
+                {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
           </div>
 
           <table className="data-table">
@@ -770,7 +784,7 @@ export default function AdminDashboard() {
               <tr>
                 <th>Order ID</th>
                 <th>Consumer Name</th>
-                <th>Items Count</th>
+                <th>Payment Info</th>
                 <th>Grand Total (₹)</th>
                 <th>10% Comm. (₹)</th>
                 <th>Status</th>
@@ -782,7 +796,16 @@ export default function AdminDashboard() {
                 <tr key={o.id}>
                   <td style={{ fontWeight: 700 }}>{o.orderId}</td>
                   <td>{o.consumerName || 'Consumer'}</td>
-                  <td>{o.items?.length || 1} items</td>
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span className={`badge ${o.paymentStatus === 'PAID' ? 'badge-success' : 'badge-warning'}`} style={{ width: 'fit-content', fontSize: '0.68rem' }}>
+                        {o.paymentStatus || 'PAID'} • {o.paymentMethod || 'UPI'}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
+                        {o.transactionId || 'TXN-DEMO-9918'}
+                      </span>
+                    </div>
+                  </td>
                   <td style={{ fontWeight: 800, color: 'var(--color-primary-dark)' }}>₹{o.totalAmount}</td>
                   <td style={{ fontWeight: 700, color: '#0284C7' }}>₹{o.platformCommission || Math.round(o.totalAmount * 0.1)}</td>
                   <td>
@@ -792,7 +815,7 @@ export default function AdminDashboard() {
                   </td>
                   <td>
                     <button className="btn btn-secondary btn-sm" style={{ fontSize: '0.7rem' }} onClick={() => setInspectOrder(o)}>
-                      Inspect & Update
+                      Inspect & Edit Payment
                     </button>
                   </td>
                 </tr>
@@ -802,19 +825,19 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Inspect Order Modal */}
+      {/* Inspect & Edit Order Payment Modal */}
       {inspectOrder && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem' }}>
-          <div className="card" style={{ maxWidth: 600, width: '100%', background: '#ffffff', borderRadius: '1.25rem', padding: '1.75rem' }}>
+          <div className="card" style={{ maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', borderRadius: '1.25rem', padding: '1.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary-dark)' }}>📋 Order {inspectOrder.orderId} Details</h3>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary-dark)' }}>📋 Order {inspectOrder.orderId} Management</h3>
                 <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Shipping: {inspectOrder.shippingAddress}</span>
               </div>
               <button className="btn btn-ghost btn-sm" onClick={() => setInspectOrder(null)}><X size={20} /></button>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.25rem' }}>
               <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}>Items Breakdown</h4>
               {inspectOrder.items?.map((item, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', borderBottom: '1px solid #e2e8f0', padding: '4px 0' }}>
@@ -828,7 +851,91 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem' }}>Update Order Status</h4>
+            {/* ADMIN PAYMENT INFO EDITING FORM */}
+            <div style={{ background: '#D8F3DC', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #52B788', marginBottom: '1.25rem' }}>
+              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', fontWeight: 800, color: '#1B4332', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CreditCard size={18} /> Update Payment Information (Admin Override)
+              </h4>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1B4332', display: 'block', marginBottom: 2 }}>Payment Status</label>
+                  <select 
+                    className="form-select" 
+                    style={{ fontSize: '0.82rem' }}
+                    value={inspectOrder.paymentStatus || 'PAID'} 
+                    onChange={e => setInspectOrder(prev => ({ ...prev, paymentStatus: e.target.value }))}
+                  >
+                    <option value="PAID">PAID (Verified)</option>
+                    <option value="PENDING_COD">PENDING_COD (Pay on Delivery)</option>
+                    <option value="PENDING">PENDING</option>
+                    <option value="REFUNDED">REFUNDED</option>
+                    <option value="FAILED">FAILED</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1B4332', display: 'block', marginBottom: 2 }}>Payment Method</label>
+                  <select 
+                    className="form-select" 
+                    style={{ fontSize: '0.82rem' }}
+                    value={inspectOrder.paymentMethod || 'UPI'} 
+                    onChange={e => setInspectOrder(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                  >
+                    <option value="UPI">UPI / QR Code</option>
+                    <option value="CREDIT_CARD">Credit / Debit Card</option>
+                    <option value="NET_BANKING">Net Banking</option>
+                    <option value="ECO_POINTS">THULIR Eco-Points Wallet</option>
+                    <option value="CASH_ON_DELIVERY">Cash on Delivery</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1B4332', display: 'block', marginBottom: 2 }}>Txn / Reference ID</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    style={{ fontSize: '0.82rem' }}
+                    value={inspectOrder.transactionId || ''} 
+                    onChange={e => setInspectOrder(prev => ({ ...prev, transactionId: e.target.value }))}
+                    placeholder="TXN-XXXXXX"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1B4332', display: 'block', marginBottom: 2 }}>Platform Commission (₹)</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    style={{ fontSize: '0.82rem' }}
+                    value={inspectOrder.platformCommission || Math.round((inspectOrder.totalAmount || 0) * 0.1)} 
+                    onChange={e => setInspectOrder(prev => ({ ...prev, platformCommission: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="button"
+                className="btn btn-primary btn-sm w-full"
+                style={{ background: '#2D6A4F', borderColor: '#2D6A4F', marginTop: 4, fontWeight: 700 }}
+                onClick={() => {
+                  act(inspectOrder.id, async () => {
+                    await updateOrderPaymentInfo(inspectOrder.id, {
+                      paymentStatus: inspectOrder.paymentStatus,
+                      paymentMethod: inspectOrder.paymentMethod,
+                      transactionId: inspectOrder.transactionId,
+                      platformCommission: inspectOrder.platformCommission
+                    });
+                  });
+                }}
+              >
+                💾 Save Payment Info & Update Firestore
+              </button>
+            </div>
+
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem' }}>Update Order Logistics Status</h4>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
               {ORDER_STATUSES.map(s => (
                 <button

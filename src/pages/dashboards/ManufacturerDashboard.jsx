@@ -223,29 +223,70 @@ export default function ManufacturerDashboard() {
             {deliveredWaste.map(w => <div className="card" key={w.id} style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><div><strong>{w.wasteId}</strong> — {w.wasteType} {w.verifiedCollectedWeight && `(${w.verifiedCollectedWeight} kg)`}</div><button className="btn btn-primary btn-sm" onClick={() => act(w.id, () => confirmWasteReceived(w.id, user.uid))} disabled={actionLoading === w.id}>✓ Received</button></div>)}
           </div>}
           {receivedWaste.length > 0 && <div style={{ marginBottom: 'var(--space-6)' }}><h3 style={{ fontWeight: 600, marginBottom: 'var(--space-3)' }}>Received — Start Processing</h3>
-            {receivedWaste.map(w => <div className="card" key={w.id} style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><div><strong>{w.wasteId}</strong> — {w.wasteType}</div><button className="btn btn-primary btn-sm" onClick={() => act(w.id, () => startWasteProcessing(w.id, user.uid))} disabled={actionLoading === w.id}>🏭 Process</button></div>)}
+            {receivedWaste.map(w => <div className="card" key={w.id} style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><div><strong>{w.wasteId}</strong> — {w.wasteType}</div><button className="btn btn-primary btn-sm" onClick={() => act(w.id, () => startWasteProcessing(w.id, user.uid))} disabled={actionLoading === w.id}>🏭 Start Processing</button></div>)}
           </div>}
-          {processingWaste.length > 0 && <div style={{ marginBottom: 'var(--space-6)' }}><h3 style={{ fontWeight: 600, marginBottom: 'var(--space-3)' }}>Processing — Mark Complete</h3>
-            {processingWaste.map(w => <div className="card" key={w.id} style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><div><strong>{w.wasteId}</strong> — {w.wasteType}</div><button className="btn btn-primary btn-sm" onClick={() => act(w.id, () => completeWasteProcessing(w.id, user.uid))} disabled={actionLoading === w.id}>✅ Complete</button></div>)}
+          {processingWaste.length > 0 && <div style={{ marginBottom: 'var(--space-6)' }}><h3 style={{ fontWeight: 600, marginBottom: 'var(--space-3)' }}>Processing — Mark Complete & Create Product</h3>
+            {processingWaste.map(w => (
+              <div className="card" key={w.id} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <strong>{w.wasteId}</strong> — <span className="badge badge-info">{w.wasteType}</span> {w.verifiedCollectedWeight ? `(${w.verifiedCollectedWeight} kg verified)` : ''}
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2 }}>Location: {w.pickupLocation}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button className="btn btn-primary btn-sm" onClick={() => {
+                    act(w.id, async () => {
+                      await completeWasteProcessing(w.id, user.uid);
+                      const wType = w.wasteType?.toLowerCase() || '';
+                      let autoCategory = 'Recycled Plastic';
+                      let autoName = `Upcycled ${w.wasteType} Eco Product`;
+                      if (wType.includes('plastic')) { autoCategory = 'Recycled Plastic'; autoName = 'Upcycled Recycled Plastic Eco-Planter Pot'; }
+                      else if (wType.includes('organic') || wType.includes('food')) { autoCategory = 'Compost'; autoName = 'Bio-Organic Micro-Nutrient Compost Fertilizer'; }
+                      else if (wType.includes('paper') || wType.includes('cardboard')) { autoCategory = 'Recycled Paper'; autoName = 'Eco-Friendly Recycled Cardboard Box Set'; }
+                      else if (wType.includes('glass')) { autoCategory = 'Recycled Glass'; autoName = 'Upcycled Glass Containerware Jar'; }
+                      else if (wType.includes('metal')) { autoCategory = 'Recycled Metal'; autoName = 'Recycled Metal Utility Hardware Set'; }
+
+                      const weightKg = Number(w.verifiedCollectedWeight || (w.quantity * 20) || 25);
+                      const calculatedStock = Math.max(10, Math.round(weightKg * 0.8));
+
+                      setProductForm({
+                        name: autoName,
+                        category: autoCategory,
+                        wasteRequestId: w.id,
+                        wasteId: w.wasteId,
+                        wasteType: w.wasteType,
+                        price: autoCategory === 'Compost' ? 299 : 399,
+                        availableQuantity: calculatedStock,
+                        description: `Made from 100% processed raw ${w.wasteType} waste (Batch #${w.wasteId}). Zero landfill output.`,
+                        image: ''
+                      });
+                      setTab('createProduct');
+                    });
+                  }} disabled={actionLoading === w.id}>
+                    ✅ Complete & Create Product
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>}
           {deliveredWaste.length === 0 && receivedWaste.length === 0 && processingWaste.length === 0 && <div className="empty-state"><Factory size={48} /><p className="empty-state-title">No waste to process</p></div>}
         </>
       )}
 
       {tab === 'products' && (
-        products.length === 0 ? <div className="empty-state"><Package size={48} /><p className="empty-state-title">No products</p><button className="btn btn-primary mt-4" onClick={() => setTab('createProduct')}>Create Product</button></div> :
+        products.length === 0 ? <div className="empty-state"><Package size={48} /><p className="empty-state-title">No products listed</p><button className="btn btn-primary mt-4" onClick={() => setTab('createProduct')}>Create Product from Processed Waste</button></div> :
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-            <h3 style={{ fontWeight: 700, margin: 0 }}>My Listed Products</h3>
+            <h3 style={{ fontWeight: 700, margin: 0 }}>My Listed Upcycled Products</h3>
             <button className="btn btn-primary btn-sm" onClick={() => setTab('createProduct')}>+ Add New Product</button>
           </div>
           <table className="data-table">
             <thead>
               <tr>
                 <th>Picture</th>
-                <th>ID</th>
+                <th>Product ID</th>
                 <th>Name</th>
                 <th>Category</th>
+                <th>Linked Waste Batch</th>
                 <th>Price</th>
                 <th>Stock</th>
                 <th>Action</th>
@@ -262,6 +303,13 @@ export default function ManufacturerDashboard() {
                   <td style={{ fontWeight: 600, fontSize: 'var(--text-xs)' }}>{p.productId}</td>
                   <td style={{ fontWeight: 600 }}>{p.name}</td>
                   <td><span className="badge badge-info">{p.category}</span></td>
+                  <td>
+                    {p.wasteId ? (
+                      <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>♻️ {p.wasteId}</span>
+                    ) : (
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Standard Stock</span>
+                    )}
+                  </td>
                   <td style={{ fontWeight: 700, color: 'var(--color-primary-dark)' }}>₹{p.price}</td>
                   <td>{p.availableQuantity}</td>
                   <td>
@@ -270,7 +318,7 @@ export default function ManufacturerDashboard() {
                       style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                       onClick={() => setEditingProduct({ ...p })}
                     >
-                      <Edit size={13} /> Edit Picture & Details
+                      <Edit size={13} /> Edit
                     </button>
                   </td>
                 </tr>
@@ -281,8 +329,64 @@ export default function ManufacturerDashboard() {
       )}
 
       {tab === 'createProduct' && (
-        <div className="card" style={{ maxWidth: 650 }}>
-          <h3 style={{ fontWeight: 700, marginBottom: 'var(--space-4)', color: 'var(--color-primary-dark)' }}>Create New Eco Product</h3>
+        <div className="card" style={{ maxWidth: 700 }}>
+          <h3 style={{ fontWeight: 800, marginBottom: '0.5rem', color: 'var(--color-primary-dark)' }}>✨ Create Upcycled Product from Processed Waste</h3>
+          <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem' }}>Select a processed raw waste batch to auto-fill category, stock yield, and traceability linkage.</p>
+
+          {/* Processed Waste Batch Selector Card */}
+          <div style={{ background: '#F0FDF4', border: '1.5px solid #86EFAC', borderRadius: '1rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+            <label className="form-label" style={{ fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.5rem' }}>
+              ♻️ Select Source Processed Raw Waste Batch:
+            </label>
+            <select 
+              className="form-select" 
+              style={{ fontSize: '0.9rem', padding: '8px 12px', background: '#ffffff', borderColor: '#86EFAC', fontWeight: 600 }}
+              value={productForm.wasteRequestId || ''}
+              onChange={(e) => {
+                const selectedBatch = myWaste.find(w => w.id === e.target.value);
+                if (selectedBatch) {
+                  const wType = selectedBatch.wasteType?.toLowerCase() || '';
+                  let autoCategory = 'Recycled Plastic';
+                  let autoName = `Upcycled ${selectedBatch.wasteType} Eco Product`;
+                  if (wType.includes('plastic')) { autoCategory = 'Recycled Plastic'; autoName = 'Upcycled Recycled Plastic Eco-Planter Pot'; }
+                  else if (wType.includes('organic') || wType.includes('food')) { autoCategory = 'Compost'; autoName = 'Bio-Organic Micro-Nutrient Compost Fertilizer'; }
+                  else if (wType.includes('paper') || wType.includes('cardboard')) { autoCategory = 'Recycled Paper'; autoName = 'Eco-Friendly Recycled Cardboard Box Set'; }
+                  else if (wType.includes('glass')) { autoCategory = 'Recycled Glass'; autoName = 'Upcycled Glass Containerware Jar'; }
+                  else if (wType.includes('metal')) { autoCategory = 'Recycled Metal'; autoName = 'Recycled Metal Utility Hardware Set'; }
+
+                  const weightKg = Number(selectedBatch.verifiedCollectedWeight || (selectedBatch.quantity * 20) || 25);
+                  const calculatedStock = Math.max(10, Math.round(weightKg * 0.8));
+
+                  setProductForm(prev => ({
+                    ...prev,
+                    wasteRequestId: selectedBatch.id,
+                    wasteId: selectedBatch.wasteId,
+                    wasteType: selectedBatch.wasteType,
+                    category: autoCategory,
+                    name: autoName,
+                    availableQuantity: calculatedStock,
+                    description: `Crafted from 100% processed raw ${selectedBatch.wasteType} waste (Batch #${selectedBatch.wasteId}). Zero landfill output.`,
+                    price: autoCategory === 'Compost' ? 299 : autoCategory === 'Recycled Plastic' ? 349 : 499
+                  }));
+                }
+              }}
+            >
+              <option value="">-- Choose Processed Batch (or create unlinked product) --</option>
+              {myWaste.filter(w => ['COMPLETED', 'PROCESSING', 'RECEIVED'].includes(w.status)).map(w => (
+                <option key={w.id} value={w.id}>
+                  Batch #{w.wasteId} — {w.wasteType} ({w.verifiedCollectedWeight ? `${w.verifiedCollectedWeight} kg` : 'Standard Raw Weight'}) [{w.status}]
+                </option>
+              ))}
+            </select>
+
+            {productForm.wasteId && (
+              <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#15803D', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+                <CheckCircle size={16} color="#166534" />
+                <span>Linked to Raw Waste Batch #{productForm.wasteId} ({productForm.wasteType}). Traceability enabled for marketplace consumers!</span>
+              </div>
+            )}
+          </div>
+
           <form onSubmit={async (e) => { 
             e.preventDefault(); 
             if(!productForm.name||!productForm.price||!productForm.category) return setError('Fill required fields'); 
@@ -292,7 +396,7 @@ export default function ManufacturerDashboard() {
               manufacturerId: user.uid, 
               manufacturerName: userData?.fullName
             }).then(() => {
-              setProductForm({name:'',description:'',category:'',price:'',availableQuantity:'',wasteType:'',image:''});
+              setProductForm({name:'',description:'',category:'',price:'',availableQuantity:'',wasteType:'',wasteRequestId:'',wasteId:'',image:''});
               setTab('products');
             })); 
           }}>
@@ -347,13 +451,13 @@ export default function ManufacturerDashboard() {
             <div className="form-group"><label className="form-label">Description</label><textarea className="form-input" value={productForm.description} onChange={e => setProductForm(p=>({...p,description:e.target.value}))} rows={3} /></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
               <div className="form-group"><label className="form-label">Category *</label><select className="form-select" value={productForm.category} onChange={e => setProductForm(p=>({...p,category:e.target.value}))} required><option value="">Select...</option>{PRODUCT_CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
-              <div className="form-group"><label className="form-label">Waste Type</label><input type="text" className="form-input" value={productForm.wasteType} onChange={e => setProductForm(p=>({...p,wasteType:e.target.value}))} /></div>
+              <div className="form-group"><label className="form-label">Source Waste Type</label><input type="text" className="form-input" value={productForm.wasteType} onChange={e => setProductForm(p=>({...p,wasteType:e.target.value}))} /></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
               <div className="form-group"><label className="form-label">Price (₹) *</label><input type="number" className="form-input" value={productForm.price} onChange={e => setProductForm(p=>({...p,price:e.target.value}))} required min="1" /></div>
-              <div className="form-group"><label className="form-label">Stock *</label><input type="number" className="form-input" value={productForm.availableQuantity} onChange={e => setProductForm(p=>({...p,availableQuantity:e.target.value}))} required min="1" /></div>
+              <div className="form-group"><label className="form-label">Available Stock *</label><input type="number" className="form-input" value={productForm.availableQuantity} onChange={e => setProductForm(p=>({...p,availableQuantity:e.target.value}))} required min="1" /></div>
             </div>
-            <button type="submit" className="btn btn-primary btn-lg w-full" disabled={actionLoading === 'product'}>Create Product</button>
+            <button type="submit" className="btn btn-primary btn-lg w-full" disabled={actionLoading === 'product'}>Publish Upcycled Product to Marketplace</button>
           </form>
         </div>
       )}
