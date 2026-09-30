@@ -69,7 +69,11 @@ export default function AdminDashboard() {
     published: true
   });
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { 
+    loadData(); 
+    const timer = setInterval(loadData, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
