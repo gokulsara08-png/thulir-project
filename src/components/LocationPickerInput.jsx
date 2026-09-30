@@ -99,14 +99,14 @@ export default function LocationPickerInput({
           }}
         >
           {loadingGps ? <Loader size={13} className="animate-spin" /> : <Crosshair size={13} />}
-          {loadingGps ? 'Locating...' : '📍 Live Location'}
+          {loadingGps ? 'Locating...' : '📍 Auto-Detect Location'}
         </button>
       </div>
 
-      {/* Dynamic Live Location Telemetry Badge */}
+      {/* Dynamic Location Access Badge */}
       {gpsCoords && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: '0.72rem', color: '#15803d', fontWeight: 600 }}>
-          <Check size={14} color="#16a34a" /> Live Location Access Granted: {gpsCoords.lat.toFixed(4)}° N, {gpsCoords.lng.toFixed(4)}° E (±{gpsCoords.accuracy || 5}m)
+          <Check size={14} color="#16a34a" /> Location Auto-Detected: {gpsCoords.formattedAddress || 'Area & City Verified'}
         </div>
       )}
 

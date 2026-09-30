@@ -187,11 +187,15 @@ export async function assignTransportPartner(requestId, transportPartnerId) {
 
 // Transport Partner sees pickups assigned to them
 export function subscribeToTransportPickups(partnerId, callback) {
-  const q = query(
-    collection(db, 'wasteRequests'),
-    where('transportPartnerId', '==', partnerId)
-  );
-  return safeSnapshot(q, callback, 'transportPickups');
+  const q = query(collection(db, 'wasteRequests'));
+  return safeSnapshot(q, (docs) => {
+    const transportPickups = docs.filter(p => 
+      p.transportPartnerId === partnerId || 
+      (!p.transportPartnerId && p.status === 'TRANSPORT_ASSIGNED') ||
+      ['TRANSPORT_ASSIGNED', 'ON_THE_WAY', 'COLLECTED'].includes(p.status)
+    );
+    callback(sortByCreatedAtDesc(transportPickups));
+  }, 'transportPickups');
 }
 
 // Transport Partner updates status: ON_THE_WAY → COLLECTED → DELIVERED
@@ -455,20 +459,30 @@ export async function getProduct(productId) {
 }
 
 // ============ ORDERS (UNCHANGED - Consumer purchase flow) ============
-export async function createOrder(userId, items, shippingAddress) {
+export async function createOrder(userId, items, shippingAddress, extraData = {}) {
   const orderId = generateId('ORDER');
+  const itemsTotal = items.reduce((sum, i) => sum + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+  const totalAmount = extraData.grandTotal || itemsTotal;
+  const platformCommission = Math.round(itemsTotal * 0.10);
+  const manufacturerPayoutAmount = Math.round(itemsTotal * 0.90);
+
   const order = {
     orderId,
-    consumerId: userId,
+    consumerId: userId || 'demo-consumer',
+    consumerName: extraData.consumerName || 'Consumer User',
     items: items.map(i => ({
-      productId: i.productId,
-      name: i.name,
-      price: i.price,
-      quantity: i.quantity,
-      manufacturerId: i.manufacturerId
+      productId: i.productId || i.id || 'PRODUCT-DEMO',
+      name: i.name || 'Eco Product',
+      price: Number(i.price || 0),
+      quantity: Number(i.quantity || 1),
+      manufacturerId: i.manufacturerId || 'demo-mfr'
     })),
-    totalAmount: items.reduce((sum, i) => sum + (i.price * i.quantity), 0),
-    shippingAddress,
+    totalAmount,
+    platformCommissionPercent: 10,
+    platformCommission,
+    manufacturerPayoutAmount,
+    shippingAddress: shippingAddress || 'Tamil Nadu',
+    deliveryFee: extraData.deliveryFee || 55,
     status: 'PLACED',
     deliveryPartnerId: null,
     createdAt: serverTimestamp(),
@@ -527,11 +541,18 @@ export async function updateOrderStatus(orderDocId, status, extraData = {}) {
 }
 
 export function subscribeToConsumerOrders(consumerId, callback) {
-  const q = query(
-    collection(db, 'orders'),
-    where('consumerId', '==', consumerId)
-  );
-  return safeSnapshot(q, callback, 'consumerOrders');
+  return onSnapshot(collection(db, 'orders'), (snap) => {
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const consumerOrders = docs.filter(o => 
+      o.consumerId === consumerId || 
+      o.isDemo ||
+      !o.consumerId
+    );
+    callback(sortByCreatedAtDesc(consumerOrders));
+  }, (error) => {
+    console.warn('[consumerOrders] Firestore listener error:', error.message);
+    callback([]);
+  });
 }
 
 export function subscribeToManufacturerOrders(manufacturerId, callback) {

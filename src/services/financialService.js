@@ -47,10 +47,10 @@ export async function createWastePayment(data) {
     transportPayout: data.transportPayout || 0,
     manufacturerPayout: data.manufacturerPayout || 0,
     platformCommission: data.platformCommission || 0,
-    // Status
-    paymentStatus: 'PENDING', // PENDING, PAID, FAILED
-    transportPayoutStatus: 'PENDING', // PENDING, PAID
-    manufacturerPayoutStatus: 'PENDING', // PENDING, PAID
+    // Status - automatically earned & paid out without waiting for manual admin intervention
+    paymentStatus: 'PAID',
+    transportPayoutStatus: 'PAID',
+    manufacturerPayoutStatus: 'PAID',
     // Snapshot of rates used
     pricingSnapshot: data.pricingSnapshot || {},
     createdAt: serverTimestamp(),
@@ -63,6 +63,13 @@ export async function createWastePayment(data) {
 export async function updatePaymentStatus(paymentDocId, status) {
   await updateDoc(doc(db, 'wastePayments', paymentDocId), { 
     paymentStatus: status, updatedAt: serverTimestamp() 
+  });
+}
+
+export async function updateWastePayment(paymentDocId, updates) {
+  await updateDoc(doc(db, 'wastePayments', paymentDocId), { 
+    ...updates, 
+    updatedAt: serverTimestamp() 
   });
 }
 
@@ -141,20 +148,26 @@ export async function getFinancialSummary() {
   const ordersSnap = await getDocs(collection(db, 'orders'));
   const orders = ordersSnap.docs.map(d => d.data());
 
+  const wasteCommission = payments.reduce((s, p) => s + (p.platformCommission || 0), 0);
+  const marketplaceCommission = orders.reduce((s, o) => s + (o.platformCommission || Math.round((o.totalAmount || 0) * 0.10)), 0);
+  const totalAdminRevenue = wasteCommission + marketplaceCommission;
+
   return {
     // Waste collection revenue
     totalWastePayments: payments.length,
     totalWasteRevenue: payments.reduce((s, p) => s + (p.totalPayable || 0), 0),
     paidWastePayments: payments.filter(p => p.paymentStatus === 'PAID').length,
     pendingWastePayments: payments.filter(p => p.paymentStatus === 'PENDING').length,
-    totalCommission: payments.reduce((s, p) => s + (p.platformCommission || 0), 0),
+    totalCommission: wasteCommission,
     totalTransportPayouts: payments.reduce((s, p) => s + (p.transportPayout || 0), 0),
     totalManufacturerPayouts: payments.reduce((s, p) => s + (p.manufacturerPayout || 0), 0),
     pendingTransportPayouts: payments.filter(p => p.transportPayoutStatus === 'PENDING').reduce((s, p) => s + (p.transportPayout || 0), 0),
     pendingManufacturerPayouts: payments.filter(p => p.manufacturerPayoutStatus === 'PENDING').reduce((s, p) => s + (p.manufacturerPayout || 0), 0),
-    // Product order revenue
+    // Product order revenue & Marketplace Commission
     totalOrders: orders.length,
     totalOrderRevenue: orders.reduce((s, o) => s + (o.totalAmount || 0), 0),
+    totalMarketplaceCommission: marketplaceCommission,
+    totalAdminRevenue: totalAdminRevenue,
     completedOrders: orders.filter(o => o.status === 'DELIVERED').length,
   };
 }
@@ -225,9 +238,9 @@ export async function createDeliveryPayment(data) {
     commission: data.commission || 0,
     deliveryPartnerEarning: data.deliveryPartnerEarning || 0,
     totalDeliveryFee: data.totalDeliveryFee || 0,
-    // Status
-    paymentStatus: 'PENDING',
-    deliveryPayoutStatus: 'PENDING',
+    // Status - automatically earned & paid out without waiting for manual admin intervention
+    paymentStatus: 'PAID',
+    deliveryPayoutStatus: 'PAID',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };

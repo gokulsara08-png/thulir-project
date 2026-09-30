@@ -33,8 +33,9 @@ export default function InteractiveAnalytics({
   const [inspectChart, setInspectChart] = useState(null); // Chart details modal
   const [showExportModal, setShowExportModal] = useState(false);
 
-  // 1. Requests Trend (Actual recorded counts per month)
-  const rawRequestsTrend = useMemo(() => groupByMonth(requests), [requests]);
+  // 1. Requests / Orders Activity Trend (Actual recorded counts per month)
+  const activityItems = useMemo(() => (requests.length > 0 ? requests : orders), [requests, orders]);
+  const rawRequestsTrend = useMemo(() => groupByMonth(activityItems), [activityItems]);
   const requestsTrend = useMemo(() => ({
     labels: rawRequestsTrend.labels,
     data: rawRequestsTrend.data
@@ -48,7 +49,11 @@ export default function InteractiveAnalytics({
   }), [rawSpendingTrend]);
 
   // 3. Category Breakdown & Status Breakdown
-  const wasteTypes = useMemo(() => countByField(requests, 'wasteType'), [requests]);
+  const wasteTypes = useMemo(() => {
+    if (requests.length > 0) return countByField(requests, 'wasteType');
+    if (orders.length > 0) return countByField(orders, 'status');
+    return countByField([], 'wasteType');
+  }, [requests, orders]);
   const userRolesDistribution = useMemo(() => countByField(users, 'role'), [users]);
   const orderStatusDistribution = useMemo(() => countByField(orders, 'status'), [orders]);
 

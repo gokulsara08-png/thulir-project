@@ -5,10 +5,9 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useCart } from '../../contexts/CartContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import StatusTracker from '../../components/StatusTracker';
-import { LineChart, DoughnutChart, BarChart, groupByMonth, groupSpendingByMonth, countByField } from '../../components/Charts';
-import InteractiveAnalytics from '../../components/InteractiveAnalytics';
 import GPSTracker from '../../components/GPSTracker';
 import ProductJourney from '../../components/ProductJourney';
+import InteractiveAnalytics from '../../components/InteractiveAnalytics';
 import { subscribeToProducts, subscribeToConsumerOrders, getProductJourney } from '../../services/firestoreService';
 import { LayoutDashboard, ShoppingBag, ShoppingCart, Heart, Package, Truck, Search, User, CheckCircle, Leaf, Check, Scale, Factory, BarChart3, IndianRupee } from 'lucide-react';
 import { getProductImage } from '../../utils/productImages';
@@ -162,10 +161,10 @@ export default function ConsumerDashboard() {
         activeOrders.map(o => (
           <div key={o.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
             <GPSTracker 
-              pickupLocation="Manufacturer Warehouse #2"
-              destinationLocation={userData?.location || 'Customer Delivery Address'}
+              pickupLocation="Manufacturer Processing Hub"
+              destinationLocation={userData?.location || 'Auto-Detected Delivery Address'}
               status={o.status}
-              driverName="FastTrack Logistics Partner"
+              driverName="Eco logistics Delivery Partner"
               height={320}
             />
             <div className="card">

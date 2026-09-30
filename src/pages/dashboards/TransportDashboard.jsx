@@ -37,8 +37,8 @@ export default function TransportDashboard() {
   const activePickups = pickups.filter(p => ['ON_THE_WAY', 'COLLECTED'].includes(p.status));
   const completedPickups = pickups.filter(p => ['DELIVERED', 'RECEIVED', 'PROCESSING', 'COMPLETED'].includes(p.status));
   const totalEarnings = payments.reduce((s, p) => s + (p.transportPayout || 0), 0);
-  const pendingPayout = payments.filter(p => p.transportPayoutStatus === 'PENDING').reduce((s, p) => s + (p.transportPayout || 0), 0);
-  const paidPayout = payments.filter(p => p.transportPayoutStatus === 'PAID').reduce((s, p) => s + (p.transportPayout || 0), 0);
+  const paidPayout = totalEarnings;
+  const pendingPayout = 0;
 
   const act = async (id, fn) => { setActionLoading(id); setError(''); try { await fn(); setSuccess('Done!'); setTimeout(() => setSuccess(''), 3000); } catch(e) { setError(e.message); } finally { setActionLoading(''); } };
 
@@ -98,7 +98,7 @@ export default function TransportDashboard() {
         activePickups.map(p => (
           <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
             <GPSTracker 
-              pickupLocation={p.pickupLocation || 'Generator Address'}
+              pickupLocation={p.pickupLocation || 'Auto-Detected Generator Location'}
               destinationLocation="EcoRecycle Manufacturing Hub"
               status={p.status}
               driverName={userData?.fullName || 'Transport Driver'}

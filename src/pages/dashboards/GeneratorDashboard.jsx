@@ -543,8 +543,8 @@ export default function GeneratorDashboard() {
         activeRequests.map(req => (
           <div key={req.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
             <GPSTracker 
-              pickupLocation={req.pickupLocation || 'Generator Location'}
-              destinationLocation="EcoRecycle Regional Hub"
+              pickupLocation={req.pickupLocation || 'Auto-Detected Generator Location'}
+              destinationLocation="EcoRecycle Regional Processing Hub"
               status={req.status}
               height={340}
             />

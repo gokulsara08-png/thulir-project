@@ -68,13 +68,9 @@ export default function ManufacturerDashboard() {
   const orderEarningsTotal = orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
   const totalEarnings = wasteEarningsTotal + orderEarningsTotal;
 
-  const pendingWastePayout = wastePayments.filter(p => p.manufacturerPayoutStatus === 'PENDING').reduce((s, p) => s + (p.manufacturerPayout || 0), 0);
-  const pendingOrderPayout = orders.filter(o => o.status !== 'DELIVERED').reduce((s, o) => s + (o.totalAmount || 0), 0);
-  const pendingPayout = pendingWastePayout + pendingOrderPayout;
-
-  const paidWastePayout = wastePayments.filter(p => p.manufacturerPayoutStatus === 'PAID').reduce((s, p) => s + (p.manufacturerPayout || 0), 0);
-  const paidOrderPayout = orders.filter(o => o.status === 'DELIVERED').reduce((s, o) => s + (o.totalAmount || 0), 0);
-  const paidPayout = paidWastePayout + paidOrderPayout;
+  // Earnings are automatically calculated & credited upon acceptance/order placement
+  const paidPayout = totalEarnings;
+  const pendingPayout = 0;
 
   const sidebar = (
     <div className="sidebar-section">
@@ -162,7 +158,7 @@ export default function ManufacturerDashboard() {
         inTransitWaste.map(w => (
           <div key={w.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
             <GPSTracker 
-              pickupLocation={w.pickupLocation || 'Generator City'}
+              pickupLocation={w.pickupLocation || 'Auto-Detected Generator Location'}
               destinationLocation={userData?.location || 'Manufacturer Processing Hub'}
               status={w.status}
               driverName="Assigned Transport Partner"

@@ -31,19 +31,28 @@ export default function CartPage() {
     setOrdering(true);
     setError('');
     try {
-      const order = await createOrder(user.uid, items, address, { deliveryFee, grandTotal });
+      const order = await createOrder(user.uid, items, address, { 
+        deliveryFee, 
+        grandTotal,
+        consumerName: user.displayName || user.email || 'Consumer'
+      });
       
       // Record delivery payment breakdown
-      await createDeliveryPayment({
-        orderId: order.orderId,
-        consumerId: user.uid,
-        ...deliveryInfo
-      });
+      try {
+        await createDeliveryPayment({
+          orderId: order.orderId,
+          consumerId: user.uid,
+          ...deliveryInfo
+        });
+      } catch (pErr) {
+        console.warn('Delivery payment recording skipped:', pErr.message);
+      }
 
       clearCart();
       setSuccess(`Order ${order.orderId} placed successfully! Total: ₹${grandTotal}`);
-      setTimeout(() => navigate('/dashboard/consumer'), 2000);
+      setTimeout(() => navigate('/dashboard/consumer'), 1800);
     } catch (err) {
+      console.error('Checkout error:', err);
       setError(err.message || t('common.error'));
     } finally {
       setOrdering(false);

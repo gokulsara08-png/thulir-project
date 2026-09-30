@@ -63,11 +63,13 @@ export default function Navbar() {
 
             {user && (
               <>
-                <Link to="/marketplace/cart" className="btn btn-icon" style={{ position: 'relative' }}>
-                  <ShoppingCart size={20} />
-                  {totalItems > 0 && <span className="notification-badge">{totalItems}</span>}
-                </Link>
-                <button className="btn btn-icon" onClick={togglePanel} style={{ position: 'relative' }}>
+                {(!userData || ['consumer', 'household', 'hotel', 'waste_generator', 'other'].includes(userData?.role)) && (
+                  <Link to="/marketplace/cart" className="btn btn-icon" style={{ position: 'relative' }} title="Shopping Cart">
+                    <ShoppingCart size={20} />
+                    {totalItems > 0 && <span className="notification-badge">{totalItems}</span>}
+                  </Link>
+                )}
+                <button className="btn btn-icon" onClick={togglePanel} style={{ position: 'relative' }} title={`${userData?.role || 'Role'} Notifications`}>
                   <Bell size={20} />
                   {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
                 </button>

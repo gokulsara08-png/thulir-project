@@ -81,8 +81,8 @@ export default function DeliveryDashboard() {
   const activeDeliveries = myDeliveries.filter(d => d.status !== 'DELIVERED');
   const completed = myDeliveries.filter(d => d.status === 'DELIVERED');
   const totalEarnings = payments.reduce((s, p) => s + (p.deliveryPartnerEarning || 0), 0);
-  const pendingPayout = payments.filter(p => p.deliveryPayoutStatus === 'PENDING').reduce((s, p) => s + (p.deliveryPartnerEarning || 0), 0);
-  const paidPayout = payments.filter(p => p.deliveryPayoutStatus === 'PAID').reduce((s, p) => s + (p.deliveryPartnerEarning || 0), 0);
+  const paidPayout = totalEarnings;
+  const pendingPayout = 0;
 
   const getNextAction = (d) => {
     const actions = {

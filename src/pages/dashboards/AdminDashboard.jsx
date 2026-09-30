@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import DashboardLayout from '../../components/DashboardLayout';
-import { LineChart, BarChart, DoughnutChart, groupByMonth, groupSpendingByMonth, countByField } from '../../components/Charts';
 import InteractiveAnalytics from '../../components/InteractiveAnalytics';
 import GPSTracker from '../../components/GPSTracker';
 import ProductJourney from '../../components/ProductJourney';
 import { getStats, getAllUsers, getAllWasteRequests, getAllOrders, getAllProducts, getAllDeliveryJobs, updateProduct } from '../../services/firestoreService';
 import { getCurrentRates, updateRateCard, DEFAULT_RATES } from '../../services/pricingService';
-import { getAllWastePayments, getFinancialSummary, markPaymentPaid, markPayoutPaid } from '../../services/financialService';
+import { getAllWastePayments, getFinancialSummary, markPaymentPaid, markPayoutPaid, updateWastePayment } from '../../services/financialService';
 import { 
   LayoutDashboard, Users, Package, Truck, ShoppingBag, Factory, Leaf, BarChart3, 
   CheckCircle, AlertCircle, IndianRupee, CreditCard, Settings, Eye, EyeOff,
@@ -36,6 +35,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [selectedJourney, setSelectedJourney] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [editingPayment, setEditingPayment] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
                 <th>Bin</th>
                 <th>Qty</th>
                 <th>Pickup Location</th>
-                <th>Recorded GPS Coords</th>
+                <th>Geo Coordinates</th>
                 <th>Amount</th>
                 <th>Status</th>
               </tr>
@@ -388,16 +388,63 @@ export default function AdminDashboard() {
       {tab === 'finance' && (
         <>
           <div className="stats-grid" style={{ marginBottom: 'var(--space-6)' }}>
-            <div className="stat-card"><div className="stat-icon green"><IndianRupee size={24} /></div><div><div className="stat-value">₹{financials.totalWasteRevenue || 0}</div><div className="stat-label">Waste Payments</div></div></div>
-            <div className="stat-card"><div className="stat-icon blue"><IndianRupee size={24} /></div><div><div className="stat-value">₹{financials.totalOrderRevenue || 0}</div><div className="stat-label">Product Sales</div></div></div>
-            <div className="stat-card"><div className="stat-icon amber"><CreditCard size={24} /></div><div><div className="stat-value">₹{financials.totalCommission || 0}</div><div className="stat-label">Platform Commission</div></div></div>
-            <div className="stat-card"><div className="stat-icon rose"><Truck size={24} /></div><div><div className="stat-value">₹{financials.totalTransportPayouts || 0}</div><div className="stat-label">Transport Payouts</div></div></div>
-            <div className="stat-card"><div className="stat-icon blue"><Factory size={24} /></div><div><div className="stat-value">₹{financials.totalManufacturerPayouts || 0}</div><div className="stat-label">Manufacturer Payouts</div></div></div>
-            <div className="stat-card"><div className="stat-icon amber"><AlertCircle size={24} /></div><div><div className="stat-value">₹{financials.pendingTransportPayouts || 0}</div><div className="stat-label">Pending Transport</div></div></div>
+            <div className="stat-card">
+              <div className="stat-icon green"><IndianRupee size={24} /></div>
+              <div>
+                <div className="stat-value">₹{financials.totalAdminRevenue || 0}</div>
+                <div className="stat-label">Total Net Platform Revenue</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon amber"><CreditCard size={24} /></div>
+              <div>
+                <div className="stat-value">₹{financials.totalMarketplaceCommission || 0}</div>
+                <div className="stat-label">Marketplace Commission (10%)</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon green"><Leaf size={24} /></div>
+              <div>
+                <div className="stat-value">₹{financials.totalCommission || 0}</div>
+                <div className="stat-label">Waste Pickup Commission</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon blue"><ShoppingBag size={24} /></div>
+              <div>
+                <div className="stat-value">₹{financials.totalOrderRevenue || 0}</div>
+                <div className="stat-label">Gross Product Sales</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon rose"><Truck size={24} /></div>
+              <div>
+                <div className="stat-value">₹{financials.totalTransportPayouts || 0}</div>
+                <div className="stat-label">Transport Payout Pool</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon blue"><Factory size={24} /></div>
+              <div>
+                <div className="stat-value">₹{financials.totalManufacturerPayouts || 0}</div>
+                <div className="stat-label">Manufacturer Payout Pool</div>
+              </div>
+            </div>
           </div>
           <div className="card"><h3 style={{ fontWeight: 600, marginBottom: 'var(--space-4)' }}>Transaction History</h3>
-            <table className="data-table"><thead><tr><th>Payment ID</th><th>Waste ID</th><th>Amount</th><th>Commission</th><th>Status</th></tr></thead>
-              <tbody>{payments.map(p => <tr key={p.id}><td style={{fontWeight:600,fontSize:'var(--text-xs)'}}>{p.paymentId}</td><td>{p.wasteId}</td><td>₹{p.totalPayable}</td><td>₹{p.platformCommission}</td><td><span className={`badge ${p.paymentStatus==='PAID'?'badge-success':'badge-warning'}`}>{p.paymentStatus}</span></td></tr>)}</tbody>
+            <table className="data-table"><thead><tr><th>Payment ID</th><th>Waste ID</th><th>Amount</th><th>Commission</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{payments.map(p => <tr key={p.id}>
+                <td style={{fontWeight:600,fontSize:'var(--text-xs)'}}>{p.paymentId}</td>
+                <td>{p.wasteId}</td>
+                <td>₹{p.totalPayable}</td>
+                <td>₹{p.platformCommission}</td>
+                <td><span className={`badge ${p.paymentStatus==='PAID'?'badge-success':'badge-warning'}`}>{p.paymentStatus}</span></td>
+                <td>
+                  <button className="btn btn-secondary btn-sm" style={{ fontSize: '0.7rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => setEditingPayment(p)}>
+                    <Edit size={12} /> Edit
+                  </button>
+                </td>
+              </tr>)}</tbody>
             </table>
           </div>
         </>
@@ -452,6 +499,9 @@ export default function AdminDashboard() {
                   {p.transportPayoutStatus==='PENDING' && <button className="btn btn-sm" style={{fontSize:'0.65rem'}} onClick={() => act(p.id+'t', () => markPayoutPaid(p.id, 'transport'))}>Pay T</button>}
                   {p.manufacturerPayoutStatus==='PENDING' && <button className="btn btn-sm" style={{fontSize:'0.65rem'}} onClick={() => act(p.id+'m', () => markPayoutPaid(p.id, 'manufacturer'))}>Pay M</button>}
                   {p.paymentStatus==='PENDING' && <button className="btn btn-sm" style={{fontSize:'0.65rem',background:'#D8F3DC',color:'#1B4332',border:'none'}} onClick={() => act(p.id+'p', () => markPaymentPaid(p.id))}>Confirm</button>}
+                  <button className="btn btn-secondary btn-sm" style={{ fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: 2 }} onClick={() => setEditingPayment(p)}>
+                    <Edit size={10} /> Edit
+                  </button>
                 </td>
               </tr>)}</tbody>
             </table>
@@ -459,16 +509,129 @@ export default function AdminDashboard() {
         </>
       )}
 
-      {/* Product Journey & Live GPS Radar */}
+      {/* Edit Payment Modal */}
+      {editingPayment && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem' }}>
+          <div className="card" style={{ maxWidth: 550, width: '100%', background: '#ffffff', borderRadius: '1.25rem', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary-dark)' }}>
+                  ✏️ Edit Payment & Financial Record
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Payment ID: {editingPayment.paymentId}</span>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditingPayment(null)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              act(editingPayment.id, async () => {
+                await updateWastePayment(editingPayment.id, {
+                  paymentStatus: editingPayment.paymentStatus || 'PAID',
+                  totalPayable: Number(editingPayment.totalPayable || 0),
+                  platformCommission: Number(editingPayment.platformCommission || 0),
+                  transportPayout: Number(editingPayment.transportPayout || 0),
+                  manufacturerPayout: Number(editingPayment.manufacturerPayout || 0),
+                  transportPayoutStatus: editingPayment.transportPayoutStatus || 'PAID',
+                  manufacturerPayoutStatus: editingPayment.manufacturerPayoutStatus || 'PAID'
+                });
+                setEditingPayment(null);
+              });
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Payment Status</label>
+                  <select 
+                    className="form-select" 
+                    value={editingPayment.paymentStatus || 'PAID'} 
+                    onChange={e => setEditingPayment(p => ({ ...p, paymentStatus: e.target.value }))}
+                  >
+                    <option value="PAID">PAID</option>
+                    <option value="PENDING">PENDING</option>
+                    <option value="REFUNDED">REFUNDED</option>
+                    <option value="REJECTED">REJECTED</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Total Amount (₹)</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={editingPayment.totalPayable || 0} 
+                    onChange={e => setEditingPayment(p => ({ ...p, totalPayable: e.target.value }))} 
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Admin Commission (₹)</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={editingPayment.platformCommission || 0} 
+                    onChange={e => setEditingPayment(p => ({ ...p, platformCommission: e.target.value }))} 
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Transport Payout (₹)</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={editingPayment.transportPayout || 0} 
+                    onChange={e => setEditingPayment(p => ({ ...p, transportPayout: e.target.value }))} 
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Transport Payout Status</label>
+                  <select 
+                    className="form-select" 
+                    value={editingPayment.transportPayoutStatus || 'PAID'} 
+                    onChange={e => setEditingPayment(p => ({ ...p, transportPayoutStatus: e.target.value }))}
+                  >
+                    <option value="PAID">PAID</option>
+                    <option value="PENDING">PENDING</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Manufacturer Payout Status</label>
+                  <select 
+                    className="form-select" 
+                    value={editingPayment.manufacturerPayoutStatus || 'PAID'} 
+                    onChange={e => setEditingPayment(p => ({ ...p, manufacturerPayoutStatus: e.target.value }))}
+                  >
+                    <option value="PAID">PAID</option>
+                    <option value="PENDING">PENDING</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditingPayment(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={actionLoading === editingPayment.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Save size={16} /> Save Payment Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Product Journey & System Location Traceability */}
       {tab === 'journey' && (
         <>
           <div style={{ marginBottom: 'var(--space-4)' }}>
             <GPSTracker 
-              pickupLocation="Region Fleet Hub Alpha"
-              destinationLocation="Central Recycling Hub"
+              pickupLocation="Regional Waste Collection Hub Alpha"
+              destinationLocation="Central Circular Eco Hub"
               status="IN_TRANSIT"
               driverName="Ecosystem Fleet Command Radar"
-              vehicleNumber="SYSTEM-WIDE GPS"
+              vehicleNumber="SYSTEM-WIDE LIVE FLEET"
               height={340}
             />
           </div>

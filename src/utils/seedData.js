@@ -79,6 +79,14 @@ export async function seedDemoData() {
         console.log(`📝 Firestore doc updated for ${userData.fullName}`);
       }
 
+      if (userData.role === 'consumer') {
+        try {
+          await seedSampleOrders(uid, userData.fullName);
+        } catch (oErr) {
+          console.warn('Order seed skipped:', oErr.message);
+        }
+      }
+
       results.users.push({ email: userData.email, uid, role: userData.role });
     } catch (err) {
       console.error(`❌ Error with ${userData.email}:`, err.message);
@@ -135,4 +143,53 @@ export async function seedSampleProducts(manufacturerId, manufacturerName) {
   }
 
   console.log('✅ Sample products created!');
+}
+
+// Sample orders to add for demo consumer
+export async function seedSampleOrders(consumerId, consumerName) {
+  const year = new Date().getFullYear();
+  const sampleOrders = [
+    {
+      orderId: `ORDER-${year}-0101`,
+      consumerId,
+      consumerName: consumerName || 'Sample Consumer',
+      items: [
+        { productId: 'P-DEMO-1', name: 'Organic Compost Premium', price: 299, quantity: 2, manufacturerId: 'demo-mfr' },
+        { productId: 'P-DEMO-2', name: 'Recycled Plastic Planters', price: 199, quantity: 1, manufacturerId: 'demo-mfr' }
+      ],
+      totalAmount: 797,
+      platformCommissionPercent: 10,
+      platformCommission: 80,
+      manufacturerPayoutAmount: 717,
+      shippingAddress: 'Gandhipuram, Coimbatore, Tamil Nadu',
+      status: 'DELIVERED',
+      isDemo: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    },
+    {
+      orderId: `ORDER-${year}-0102`,
+      consumerId,
+      consumerName: consumerName || 'Sample Consumer',
+      items: [
+        { productId: 'P-DEMO-3', name: 'Eco Paper Notebooks', price: 149, quantity: 3, manufacturerId: 'demo-mfr' }
+      ],
+      totalAmount: 447,
+      platformCommissionPercent: 10,
+      platformCommission: 45,
+      manufacturerPayoutAmount: 402,
+      shippingAddress: 'T. Nagar, Chennai, Tamil Nadu',
+      status: 'OUT_FOR_DELIVERY',
+      isDemo: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }
+  ];
+
+  for (const o of sampleOrders) {
+    await addDoc(collection(db, 'orders'), o);
+    console.log(`🛒 Created demo order: ${o.orderId}`);
+  }
+
+  console.log('✅ Sample demo consumer orders created!');
 }

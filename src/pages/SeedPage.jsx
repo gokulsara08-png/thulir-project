@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { seedDemoData, seedSampleProducts } from '../utils/seedData';
+import { seedDemoData, seedSampleProducts, seedSampleOrders } from '../utils/seedData';
 import { useAuth } from '../contexts/AuthContext';
-import { Leaf, CheckCircle, AlertCircle, Loader, Database, Users, Package } from 'lucide-react';
+import { Leaf, CheckCircle, AlertCircle, Loader, Database, Users, Package, ShoppingCart } from 'lucide-react';
 
 export default function SeedPage() {
   const { user, userData } = useAuth();
   const [seedStatus, setSeedStatus] = useState('idle');
   const [productStatus, setProductStatus] = useState('idle');
+  const [orderStatus, setOrderStatus] = useState('idle');
   const [logs, setLogs] = useState([]);
   const [error, setError] = useState('');
 
@@ -55,6 +56,20 @@ export default function SeedPage() {
     } catch (err) {
       setError(err.message);
       setProductStatus('error');
+    }
+  };
+
+  const handleSeedOrders = async () => {
+    const consumerUid = user?.uid || 'demo-consumer-id';
+    const consumerName = userData?.fullName || 'Sample Consumer';
+    setOrderStatus('loading');
+    setError('');
+    try {
+      await captureLog(() => seedSampleOrders(consumerUid, consumerName));
+      setOrderStatus('done');
+    } catch (err) {
+      setError(err.message);
+      setOrderStatus('error');
     }
   };
 
@@ -136,7 +151,32 @@ export default function SeedPage() {
           )}
         </div>
 
-        {/* Demo Accounts Table */}
+        {/* Step 3: Seed Orders */}
+        <div style={{ background: '#F8F9FA', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0369A1', fontWeight: 700 }}>3</div>
+            <div>
+              <h3 style={{ fontWeight: 600, fontSize: '1rem' }}>Seed Consumer Demo Orders</h3>
+              <p style={{ fontSize: '0.75rem', color: '#6C757D' }}>Generates demo marketplace orders & payouts</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSeedOrders}
+            disabled={orderStatus === 'loading'}
+            style={{
+              width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: 'none',
+              background: orderStatus === 'done' ? '#2D6A4F' : '#0284C7', color: 'white',
+              fontWeight: 600, cursor: orderStatus === 'loading' ? 'wait' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              fontSize: '0.875rem', opacity: orderStatus === 'loading' ? 0.7 : 1
+            }}
+          >
+            {orderStatus === 'loading' && <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />}
+            {orderStatus === 'done' && <CheckCircle size={16} />}
+            {orderStatus === 'idle' && <ShoppingCart size={16} />}
+            {orderStatus === 'loading' ? 'Creating orders...' : orderStatus === 'done' ? 'Orders Created!' : 'Create Consumer Orders'}
+          </button>
+        </div>
         {seedStatus === 'done' && (
           <div style={{ background: '#D8F3DC', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1rem' }}>
             <h3 style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: '#1B4332' }}>📋 Demo Accounts Created</h3>

@@ -113,21 +113,6 @@ export default function GPSTracker({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button
-            type="button"
-            onClick={handleConnectHardwareGPS}
-            disabled={loadingGps}
-            style={{
-              border: 'none', background: gpsActive ? '#D8F3DC' : 'rgba(255,255,255,0.2)',
-              color: gpsActive ? '#1B4332' : '#ffffff', fontWeight: 700,
-              padding: '4px 10px', borderRadius: '1rem', fontSize: '0.72rem',
-              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4
-            }}
-          >
-            {loadingGps ? <Loader size={12} className="animate-spin" /> : <Navigation size={12} />}
-            {gpsActive ? `📡 Live Device GPS (±${deviceCoords?.accuracy || 5}m)` : '📡 Connect Device GPS'}
-          </button>
-
           <span style={{ 
             background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)', 
             padding: '3px 10px', borderRadius: '1rem', fontSize: '0.72rem', fontWeight: 600,
