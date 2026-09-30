@@ -25,6 +25,23 @@ import { getProductImage, PRESET_PRODUCT_IMAGES } from '../../utils/productImage
 
 const ORDER_STATUSES = ['PLACED', 'CONFIRMED', 'PROCESSING', 'READY_FOR_DELIVERY', 'DELIVERY_ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED'];
 
+function formatRealDate(timestamp) {
+  if (!timestamp) return new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  let d;
+  if (typeof timestamp === 'object' && timestamp.toDate) {
+    d = timestamp.toDate();
+  } else if (typeof timestamp === 'object' && timestamp.seconds) {
+    d = new Date(timestamp.seconds * 1000);
+  } else {
+    d = new Date(timestamp);
+  }
+  if (isNaN(d.getTime())) d = new Date();
+  return d.toLocaleDateString('en-IN', { 
+    day: '2-digit', month: 'short', year: 'numeric', 
+    hour: '2-digit', minute: '2-digit' 
+  });
+}
+
 export default function AdminDashboard() {
   const { userData } = useAuth();
   const { t } = useLanguage();
@@ -452,6 +469,7 @@ export default function AdminDashboard() {
           <table className="data-table">
             <thead>
               <tr>
+                <th>Date & Time</th>
                 <th>Request ID</th>
                 <th>Waste Type</th>
                 <th>Bin Size</th>
@@ -466,6 +484,9 @@ export default function AdminDashboard() {
             <tbody>
               {wasteRequests.map(w => (
                 <tr key={w.id}>
+                  <td style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                    {formatRealDate(w.createdAt)}
+                  </td>
                   <td style={{ fontWeight: 700 }}>{w.wasteId}</td>
                   <td>{w.wasteType}</td>
                   <td>{w.binSize}</td>
@@ -782,6 +803,7 @@ export default function AdminDashboard() {
           <table className="data-table">
             <thead>
               <tr>
+                <th>Date & Time</th>
                 <th>Order ID</th>
                 <th>Consumer Name</th>
                 <th>Payment Info</th>
@@ -794,6 +816,9 @@ export default function AdminDashboard() {
             <tbody>
               {filteredOrders.map(o => (
                 <tr key={o.id}>
+                  <td style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                    {formatRealDate(o.createdAt || o.paidAt)}
+                  </td>
                   <td style={{ fontWeight: 700 }}>{o.orderId}</td>
                   <td>{o.consumerName || 'Consumer'}</td>
                   <td>
@@ -1008,10 +1033,11 @@ export default function AdminDashboard() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>Date & Time</th>
                   <th>Payment ID</th>
-                  <th>Waste / Ref ID</th>
-                  <th>Amount (₹)</th>
-                  <th>Admin Comm. (₹)</th>
+                  <th>Type / Ref ID</th>
+                  <th>Gross Amount (₹)</th>
+                  <th>Platform Comm. (₹)</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -1019,9 +1045,17 @@ export default function AdminDashboard() {
               <tbody>
                 {payments.map(p => (
                   <tr key={p.id}>
+                    <td style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                      {formatRealDate(p.createdAt || p.paidAt)}
+                    </td>
                     <td style={{ fontWeight: 700, fontSize: 'var(--text-xs)' }}>{p.paymentId}</td>
-                    <td>{p.wasteId || p.orderId || '-'}</td>
-                    <td style={{ fontWeight: 800 }}>₹{p.totalPayable || p.amount || 0}</td>
+                    <td>
+                      <span className="badge badge-info" style={{ fontSize: '0.66rem', padding: '2px 6px', marginRight: 4 }}>
+                        {p.type || 'WASTE_COLLECTION'}
+                      </span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{p.wasteId || p.orderId || '-'}</span>
+                    </td>
+                    <td style={{ fontWeight: 800, color: 'var(--color-primary-dark)' }}>₹{p.totalPayable || p.amount || 0}</td>
                     <td style={{ fontWeight: 700, color: '#0284C7' }}>₹{p.platformCommission || 0}</td>
                     <td><span className={`badge ${p.paymentStatus === 'PAID' ? 'badge-success' : 'badge-warning'}`}>{p.paymentStatus}</span></td>
                     <td>
